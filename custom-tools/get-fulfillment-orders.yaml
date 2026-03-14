@@ -1,0 +1,41 @@
+name: get_fulfillment_orders
+domain: orders
+description: Get fulfillment order IDs for an order. Required before creating a fulfillment.
+scopes:
+  - read_assigned_fulfillment_orders
+input:
+  order_id:
+    type: string
+    description: Order GID (e.g. gid://shopify/Order/123)
+    required: true
+graphql: |
+  query GetFulfillmentOrders($order_id: ID!) {
+    order(id: $order_id) {
+      id
+      name
+      displayFulfillmentStatus
+      fulfillmentOrders(first: 10) {
+        edges {
+          node {
+            id
+            status
+            requestStatus
+            assignedLocation {
+              name
+            }
+            lineItems(first: 50) {
+              edges {
+                node {
+                  id
+                  totalQuantity
+                  remainingQuantity
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+response:
+  mapping: data.order

@@ -1,0 +1,51 @@
+name: update_fulfillment_tracking
+domain: orders
+description: Update tracking info on an existing fulfillment.
+scopes:
+  - write_assigned_fulfillment_orders
+input:
+  fulfillment_id:
+    type: string
+    description: Fulfillment GID (e.g. gid://shopify/Fulfillment/123)
+    required: true
+  tracking_company:
+    type: string
+    description: Carrier name (e.g. UPS, FedEx, DHL)
+    required: false
+  tracking_number:
+    type: string
+    description: New tracking number
+    required: false
+  tracking_url:
+    type: string
+    description: New tracking URL
+    required: false
+  notify_customer:
+    type: boolean
+    description: Send tracking update email to customer
+    required: false
+graphql: |
+  mutation UpdateFulfillmentTracking($fulfillment_id: ID!, $tracking_company: String, $tracking_number: String, $tracking_url: URL, $notify_customer: Boolean) {
+    fulfillmentTrackingInfoUpdate(
+      fulfillmentId: $fulfillment_id
+      trackingInfoInput: {
+        company: $tracking_company
+        number: $tracking_number
+        url: $tracking_url
+      }
+      notifyCustomer: $notify_customer
+    ) {
+      fulfillment {
+        id
+        status
+        trackingInfo {
+          company
+          number
+          url
+        }
+      }
+      userErrors { field message }
+    }
+  }
+response:
+  mapping: data.fulfillmentTrackingInfoUpdate

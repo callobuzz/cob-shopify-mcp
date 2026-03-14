@@ -1,0 +1,37 @@
+name: complete_draft_order
+domain: orders
+description: Convert a draft order into a real order. Returns the new order with ID, name, and totals.
+scopes:
+  - write_draft_orders
+input:
+  id:
+    type: string
+    description: Draft order GID (e.g. gid://shopify/DraftOrder/123)
+    required: true
+  payment_pending:
+    type: boolean
+    description: If true, creates order with payment pending
+    required: false
+graphql: |
+  mutation CompleteDraftOrder($id: ID!, $paymentPending: Boolean) {
+    draftOrderComplete(id: $id, paymentPending: $paymentPending) {
+      draftOrder {
+        id
+        name
+        status
+        order {
+          id
+          name
+          totalPriceSet {
+            shopMoney { amount currencyCode }
+          }
+          displayFinancialStatus
+          displayFulfillmentStatus
+          createdAt
+        }
+      }
+      userErrors { field message }
+    }
+  }
+response:
+  mapping: data.draftOrderComplete

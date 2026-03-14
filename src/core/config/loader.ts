@@ -119,10 +119,21 @@ function envVarsToConfig(): Record<string, unknown> {
 		config.shopify = { api_version: process.env.SHOPIFY_API_VERSION };
 	}
 
+	const tools: Record<string, unknown> = {};
 	if (process.env.COB_SHOPIFY_READ_ONLY) {
 		const val = process.env.COB_SHOPIFY_READ_ONLY.toLowerCase();
-		config.tools = { read_only: val === "true" || val === "1" };
+		tools.read_only = val === "true" || val === "1";
 	}
+	if (process.env.COB_SHOPIFY_CUSTOM_TOOLS) {
+		tools.custom_paths = process.env.COB_SHOPIFY_CUSTOM_TOOLS.split(",").map((p) => p.trim());
+	}
+	if (process.env.COB_SHOPIFY_DISABLE) {
+		tools.disable = process.env.COB_SHOPIFY_DISABLE.split(",").map((s) => s.trim());
+	}
+	if (process.env.COB_SHOPIFY_ENABLE) {
+		tools.enable = process.env.COB_SHOPIFY_ENABLE.split(",").map((s) => s.trim());
+	}
+	if (Object.keys(tools).length > 0) config.tools = tools;
 
 	if (process.env.COB_SHOPIFY_LOG_LEVEL) {
 		config.observability = { log_level: process.env.COB_SHOPIFY_LOG_LEVEL };

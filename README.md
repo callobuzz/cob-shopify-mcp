@@ -4,7 +4,7 @@ Production-grade MCP server **and** CLI tool for Shopify. Use it as an MCP serve
 
 ## Features
 
-- **49 tools** across 5 domains (Products, Orders, Customers, Inventory, Analytics)
+- **49 built-in tools + 5 example custom tools** across 5 domains (Products, Orders, Customers, Inventory, Analytics)
 - **Standalone CLI** — manage your store from the terminal without MCP (`cob-shopify-mcp tools list`, `stores list`, etc.)
 - **MCP server** — connect to Claude, Cursor, Windsurf, or any MCP-compatible AI agent
 - **4 MCP resources** (Shop info, Locations, Policies, Currencies)
@@ -286,32 +286,58 @@ You need a store to test against. Dev stores are free and never expire.
 5. Scroll down to the **Access** section
 6. Click **Select scopes** — this opens a dropdown where you can either:
    - **Search and check** each scope individually, or
-   - **Paste** a comma-separated list directly into the field:
+   - **Paste** a comma-separated list directly into the field
+
+**Full access (recommended — copy-paste this entire block):**
 
 ```
-read_products, write_products, read_orders, write_orders, write_draft_orders, read_customers, write_customers, read_inventory, write_inventory, read_locations, read_assigned_fulfillment_orders
+read_products, write_products, read_orders, write_orders, read_all_orders, read_draft_orders, write_draft_orders, read_order_edits, write_order_edits, read_customers, write_customers, read_inventory, write_inventory, read_locations, read_fulfillments, write_fulfillments, read_assigned_fulfillment_orders, write_assigned_fulfillment_orders, read_merchant_managed_fulfillment_orders, write_merchant_managed_fulfillment_orders, read_third_party_fulfillment_orders, write_third_party_fulfillment_orders, read_shipping, read_reports, read_legal_policies
 ```
 
 > **Read-only?** Use only the read scopes and set `COB_SHOPIFY_READ_ONLY=true` in `.env`:
 > ```
-> read_products, read_orders, read_customers, read_inventory, read_locations, read_assigned_fulfillment_orders
+> read_products, read_orders, read_all_orders, read_draft_orders, read_customers, read_inventory, read_locations, read_fulfillments, read_assigned_fulfillment_orders, read_merchant_managed_fulfillment_orders, read_third_party_fulfillment_orders, read_shipping, read_reports, read_legal_policies
 > ```
 
 What each scope enables:
 
-| Scope | Tools |
-|-------|-------|
-| `read_products` | List, search, get products/variants/collections |
-| `write_products` | Create/update products, variants, tags |
-| `read_orders` | List, search, get orders, timeline, analytics |
-| `write_orders` | Update order notes/tags, mark paid |
-| `write_draft_orders` | Create draft orders |
-| `read_customers` | List, search, get customers, LTV |
-| `write_customers` | Create/update customers, tags |
-| `read_inventory` | Inventory levels, items, SKU lookup |
-| `write_inventory` | Adjust/set inventory quantities |
-| `read_locations` | Store locations (needed for inventory tools) |
-| `read_assigned_fulfillment_orders` | Fulfillment status details |
+| Scope | What it covers |
+|-------|---------------|
+| **Products** | |
+| `read_products` | List, search, get products, variants, collections, tags |
+| `write_products` | Create/update/delete products, variants, tags, status, collections |
+| **Orders** | |
+| `read_orders` | List, search, get orders (last 60 days), timeline, analytics |
+| `read_all_orders` | Read orders older than 60 days (historical data — requires approval) |
+| `write_orders` | Update order notes/tags, mark paid, cancel orders |
+| `read_draft_orders` | List, get draft orders |
+| `write_draft_orders` | Create draft orders, complete draft orders to real orders |
+| `read_order_edits` | View order modification history |
+| `write_order_edits` | Edit existing orders (add/remove items, adjust prices) |
+| **Customers** | |
+| `read_customers` | List, search, get customers, lifetime value, order history |
+| `write_customers` | Create/update customers, manage tags |
+| **Inventory** | |
+| `read_inventory` | Inventory levels, items, SKU lookup, low stock reports |
+| `write_inventory` | Adjust quantities, set inventory levels |
+| `read_locations` | Store locations (required by inventory tools) |
+| **Fulfillment** | |
+| `read_fulfillments` | Read fulfillment data and services |
+| `write_fulfillments` | Create/modify fulfillment services |
+| `read_assigned_fulfillment_orders` | Read fulfillment orders assigned to your app |
+| `write_assigned_fulfillment_orders` | Create fulfillments, update tracking for assigned orders |
+| `read_merchant_managed_fulfillment_orders` | Read merchant-managed fulfillment orders |
+| `write_merchant_managed_fulfillment_orders` | Fulfill and track merchant-managed orders |
+| `read_third_party_fulfillment_orders` | Read 3PL fulfillment orders |
+| `write_third_party_fulfillment_orders` | Fulfill and track 3PL orders |
+| **Other** | |
+| `read_shipping` | Shipping zones, rates, and delivery carrier services |
+| `read_reports` | Store reports and analytics data |
+| `read_legal_policies` | Store policies (used by shop-policies MCP resource) |
+
+> **Important:** For fulfillment to work, you also need the **"Fulfill and ship orders"** additional permission. On the same configuration page, scroll to **Additional permissions** and enable it.
+
+> For even more scopes (themes, discounts, metafields, gift cards, marketing, returns, etc.) for custom YAML tools, see the **[Custom Tools Guide](custom-tools/README.md#scopes-reference)**.
 
 7. Click **Release** (top-right) to create the app version with these scopes
 
@@ -697,9 +723,21 @@ tools:
 
 The **3-tier system** gives full control: Tier 1 (enabled by default), Tier 2 (disabled by default, opt-in via config), Tier 3 (custom YAML tools, enabled by default). Plus `tools.enable` / `tools.disable` for granular overrides.
 
+See the **[Custom Tools Guide](custom-tools/README.md)** for the full reference — YAML structure, variable naming rules, response mapping, scopes reference, error handling, and step-by-step examples. The `custom-tools/` directory also includes 5 ready-made example tools (draft order completion, fulfillment, tracking, cancellation).
+
+### Managing Tools
+
+```bash
+# Via environment variables
+COB_SHOPIFY_CUSTOM_TOOLS=./custom-tools    # Load custom YAML tools from directory
+COB_SHOPIFY_DISABLE=cancel_order,tool2     # Disable specific tools
+COB_SHOPIFY_ENABLE=some_tier2_tool         # Enable specific Tier 2 tools
+COB_SHOPIFY_READ_ONLY=true                 # Disable ALL write operations
+```
+
 | Feature | **cob-shopify-mcp** | GeLi2001 (147⭐) | pashpashpash (35⭐) | antoineschaller (10⭐) | benwmerritt |
 |---------|:---:|:---:|:---:|:---:|:---:|
-| **Tools** | **49** | 14 | 15 | 22 | 30+ |
+| **Tools** | **54** (49 built-in + 5 custom) | 14 | 15 | 22 | 30+ |
 | **MCP Resources** | **4** | 0 | 0 | 0 | 0 |
 | **MCP Prompts** | **4** | 0 | 0 | 0 | 0 |
 | **Auth methods** | **3** (static, client-creds, OAuth) | 2 | 1 | 1 | 2 |

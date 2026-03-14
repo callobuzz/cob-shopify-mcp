@@ -67,13 +67,41 @@ export class ShopifyClient {
 				const gqlErrors = response.errors.graphQLErrors;
 				if (gqlErrors && gqlErrors.length > 0) {
 					const messages = gqlErrors.map((e: { message?: string }) => e.message ?? "Unknown GraphQL error").join("; ");
+					// Detect scope/permission errors and give actionable message
+					const isScopeError = gqlErrors.some(
+						(e: { message?: string; extensions?: { code?: string } }) =>
+							e.extensions?.code === "ACCESS_DENIED" ||
+							e.message?.includes("Access denied") ||
+							e.message?.includes("access_scope") ||
+							e.message?.includes("permission"),
+					);
+					if (isScopeError) {
+						throw new Error(
+							`Access denied — your app is missing required Shopify scopes. ${messages}. ` +
+								"Go to dev.shopify.com → your app → Configuration → update scopes → Release a new version. " +
+								"Then reinstall the app on your store.",
+						);
+					}
 					throw new Error(`GraphQL errors: ${messages}`);
 				}
 				if (response.errors.message) {
-					throw new Error(`GraphQL error: ${response.errors.message}`);
+					const msg = response.errors.message;
+					if (msg.includes("Access denied") || msg.includes("Forbidden")) {
+						throw new Error(
+							`Access denied — ${msg}. Check your app scopes at dev.shopify.com → your app → Configuration.`,
+						);
+					}
+					throw new Error(`GraphQL error: ${msg}`);
 				}
 				if (response.errors.networkStatusCode) {
-					throw new Error(`Network error: status ${response.errors.networkStatusCode}`);
+					const status = response.errors.networkStatusCode;
+					if (status === 403) {
+						throw new Error(
+							"Forbidden (403) — your app lacks the required scopes for this operation. " +
+								"Go to dev.shopify.com → your app → Configuration → update scopes → Release → reinstall.",
+						);
+					}
+					throw new Error(`Network error: status ${status}`);
 				}
 			}
 

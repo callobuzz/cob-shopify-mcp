@@ -1,0 +1,55 @@
+name: cancel_order
+domain: orders
+description: Cancel an order. Returns a job ID (cancellation runs async). Reasons - CUSTOMER, DECLINED, FRAUD, INVENTORY, OTHER, STAFF.
+scopes:
+  - write_orders
+input:
+  order_id:
+    type: string
+    description: Order GID (e.g. gid://shopify/Order/123)
+    required: true
+  reason:
+    type: enum
+    description: Cancellation reason
+    required: true
+    enum:
+      - CUSTOMER
+      - DECLINED
+      - FRAUD
+      - INVENTORY
+      - OTHER
+      - STAFF
+  restock:
+    type: boolean
+    description: Return inventory to stock
+    required: true
+  notify_customer:
+    type: boolean
+    description: Send cancellation email to customer
+    required: false
+  staff_note:
+    type: string
+    description: Internal note (max 255 chars)
+    required: false
+graphql: |
+  mutation CancelOrder($order_id: ID!, $reason: OrderCancelReason!, $restock: Boolean!, $notify_customer: Boolean, $staff_note: String) {
+    orderCancel(
+      orderId: $order_id
+      reason: $reason
+      restock: $restock
+      notifyCustomer: $notify_customer
+      staffNote: $staff_note
+    ) {
+      job {
+        id
+        done
+      }
+      orderCancelUserErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+response:
+  mapping: data.orderCancel

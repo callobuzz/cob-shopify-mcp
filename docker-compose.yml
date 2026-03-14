@@ -37,6 +37,8 @@ services:
     volumes:
       # Persist JSON/SQLite storage outside the container
       - ./data:/app/data
+      # Mount custom YAML tools
+      - ./custom-tools:/app/custom-tools
 
     # Container-level resource limits (adjust for your VPS size)
     deploy:
