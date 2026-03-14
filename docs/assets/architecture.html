@@ -791,13 +791,14 @@
         <div class="card card-purple reveal reveal-delay-1">
           <div class="card-icon card-icon-purple">&#9654;</div>
           <div class="card-title">CLI</div>
-          <div class="card-desc">Developer-facing command-line interface built with citty + consola. Dynamic tool discovery to minimize token usage.</div>
+          <div class="card-desc">Natural domain commands powered by Commander. <code>cob-shopify products list --limit 5</code>. Auto-discovers built-in + custom YAML tools.</div>
           <div class="card-tags">
-            <span class="card-tag">connect</span>
-            <span class="card-tag">serve</span>
-            <span class="card-tag">tools</span>
-            <span class="card-tag">citty</span>
-            <span class="card-tag">consola</span>
+            <span class="card-tag">products</span>
+            <span class="card-tag">orders</span>
+            <span class="card-tag">customers</span>
+            <span class="card-tag">inventory</span>
+            <span class="card-tag">analytics</span>
+            <span class="card-tag">Commander</span>
           </div>
         </div>
         <div class="card card-blue reveal reveal-delay-2">
@@ -831,7 +832,7 @@
         <div class="diagram-viewport" id="entry-diagram-vp">
           <pre class="mermaid" id="entry-diagram">
 flowchart LR
-    CLI["<b>CLI</b><br/><i>citty + consola</i><br/>connect &middot; serve &middot; tools"]
+    CLI["<b>CLI &middot; Commander</b><br/><i>products &middot; orders &middot; customers</i><br/><i>inventory &middot; analytics</i>"]
     STDIO["<b>stdio Transport</b><br/><i>StdioServerTransport</i>"]
     HTTP["<b>HTTP Transport</b><br/><i>StreamableHTTPServerTransport</i>"]
 
