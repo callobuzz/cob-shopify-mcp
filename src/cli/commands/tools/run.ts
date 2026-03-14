@@ -60,6 +60,13 @@ export default defineCommand({
 				return;
 			}
 
+			// Deprecation warning
+			const { getNewCommand, printDeprecationWarning } = await import("../../deprecation.js");
+			printDeprecationWarning(
+				`tools run ${args.name}`,
+				getNewCommand(tool.name, tool.domain),
+			);
+
 			if (!enabledNames.has(args.name)) {
 				consola.error(`Tool "${args.name}" is disabled by config.`);
 				consola.info("Check your tools.disable / tools.enable settings, or COB_SHOPIFY_READ_ONLY.");
@@ -73,7 +80,7 @@ export default defineCommand({
 				try {
 					input = JSON.parse(args.params);
 				} catch {
-					consola.error("Invalid JSON in --params. Use format: '{\"key\": \"value\"}'");
+					consola.error('Invalid JSON in --params. Use format: \'{"key": "value"}\'');
 					process.exitCode = 1;
 					return;
 				}
@@ -139,9 +146,7 @@ export default defineCommand({
 			// Show cost summary on stderr
 			const stats = costTracker.getSessionStats();
 			if (stats.totalCallsMade > 0) {
-				consola.info(
-					`API cost: ${stats.totalCostConsumed} points | Budget remaining: ${stats.budgetRemaining}`,
-				);
+				consola.info(`API cost: ${stats.totalCostConsumed} points | Budget remaining: ${stats.budgetRemaining}`);
 			}
 		} catch (err) {
 			consola.error(`Failed to run tool "${args.name}":`, err instanceof Error ? err.message : String(err));
