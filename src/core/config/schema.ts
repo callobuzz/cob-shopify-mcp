@@ -29,7 +29,7 @@ export const configSchema = z.object({
 			disable: z.array(z.string()).default([]),
 			enable: z.array(z.string()).default([]),
 			custom_paths: z.array(z.string()).default([]),
-		advertise_and_activate: z.boolean().default(false),
+			advertise_and_activate: z.boolean().default(false),
 		})
 		.default({}),
 	transport: z

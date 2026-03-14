@@ -138,7 +138,7 @@ export function registerAdvertiser(
 			const result = await handler(input as { domains: string | string[] });
 			return {
 				content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
-				isError: !!result.error,
+				isError: !!result.error && !result.activated,
 			};
 		},
 	);
