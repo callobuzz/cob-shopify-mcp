@@ -1,6 +1,7 @@
 import { createAuthProvider } from "@core/auth/factory.js";
 import { loadConfig } from "@core/config/loader.js";
 import type { CobConfig, DeepPartial } from "@core/config/types.js";
+import { registerAdvertiser } from "@core/engine/advertiser.js";
 import { ToolEngine } from "@core/engine/tool-engine.js";
 import type { ExecutionContext } from "@core/engine/types.js";
 import { AuditLogger } from "@core/observability/audit.js";
@@ -115,7 +116,11 @@ export async function bootstrap(overrides?: DeepPartial<CobConfig>): Promise<voi
 	});
 
 	// 12. Register tools, resources, prompts
-	registerTools(server, registry, toolEngine, config, ctx);
+	if (config.tools.advertise_and_activate) {
+		registerAdvertiser(server, registry, toolEngine, config, ctx);
+	} else {
+		registerTools(server, registry, toolEngine, config, ctx);
+	}
 
 	const allResources = getAllResources();
 	registerResources(server, allResources, ctx);
