@@ -481,6 +481,102 @@ pnpm build          # Build with tsup
 
 ## Architecture
 
+```mermaid
+flowchart TB
+    subgraph ENTRY["Entry Points"]
+        direction LR
+        CLI["CLI\nconnect · serve · tools"]
+        STDIO["MCP Server\nstdio transport"]
+        HTTP["HTTP Server\nStreamable HTTP"]
+    end
+
+    subgraph CORE["Core Engine (API-Agnostic)"]
+        direction TB
+
+        subgraph REGISTRY["Registry & Discovery"]
+            direction LR
+            AD["Auto-Discover\n*.tool.ts"]
+            REG["Tool Registry\nregister · list · filter"]
+            CF["Config Filter\nenable · disable · tiers"]
+        end
+
+        subgraph ENGINES["MCP Engines"]
+            direction LR
+            TE["Tool Engine\nschema gen · execute"]
+            RE["Resource Engine\nread-only data"]
+            PE["Prompt Engine\ntemplates · workflows"]
+        end
+
+        subgraph INFRA["Infrastructure"]
+            direction LR
+            AUTH["Auth Manager\nstatic · client-creds · OAuth"]
+            OBS["Observability\nlogs · metrics · audit"]
+            STORE["Storage\nJSON · SQLite+encryption"]
+        end
+
+        DT["defineTool() Helper"]
+    end
+
+    subgraph SHOPIFY["Shopify Shell"]
+        direction TB
+
+        subgraph CLIENT["Shopify GraphQL Client"]
+            direction LR
+            GQL["GraphQL Client\n@shopify/admin-api-client"]
+            RL["Rate Limiter"]
+            CACHE["Cache Layer"]
+        end
+
+        subgraph TOOLS["49 Tool Definitions"]
+            direction LR
+            PROD["Products\n15 tools"]
+            ORD["Orders\n12 tools"]
+            CUST["Customers\n9 tools"]
+            INV["Inventory\n7 tools"]
+            ANAL["Analytics\n6 tools"]
+        end
+
+        subgraph MCPPRIM["MCP Primitives"]
+            direction LR
+            RES["Resources\nshop info · locations"]
+            PROMPT["Prompts\nstore health · reports"]
+        end
+    end
+
+    SHOPIFY_API["Shopify Admin GraphQL API"]
+
+    CLI --> CORE
+    STDIO --> CORE
+    HTTP --> CORE
+
+    AD --> REG
+    REG --> CF
+    CF --> TE
+    CF --> RE
+    CF --> PE
+
+    DT -.-> REG
+
+    TE --> CLIENT
+    RE --> CLIENT
+    PE --> CLIENT
+
+    AUTH --> CLIENT
+    OBS -.-> TE
+    STORE -.-> AUTH
+
+    GQL --> RL
+    RL --> CACHE
+
+    TOOLS --> DT
+    MCPPRIM --> RE
+    MCPPRIM --> PE
+
+    CACHE --> SHOPIFY_API
+```
+
+### Project Structure
+
 ```
 src/
 ├── core/               # API-agnostic MCP server core
