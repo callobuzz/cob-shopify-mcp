@@ -481,6 +481,14 @@ pnpm build          # Build with tsup
 
 ## Architecture
 
+<div align="center">
+
+[![Interactive Architecture Diagram](https://img.shields.io/badge/View_Interactive_Diagram-Core_%2B_Shell_Architecture-6c63ff?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiPjxyZWN0IHg9IjMiIHk9IjMiIHdpZHRoPSI3IiBoZWlnaHQ9IjciLz48cmVjdCB4PSIxNCIgeT0iMyIgd2lkdGg9IjciIGhlaWdodD0iNyIvPjxyZWN0IHg9IjMiIHk9IjE0IiB3aWR0aD0iNyIgaGVpZ2h0PSI3Ii8+PHJlY3QgeD0iMTQiIHk9IjE0IiB3aWR0aD0iNyIgaGVpZ2h0PSI3Ii8+PC9zdmc+)](https://svinpeace.github.io/cob-shopify-mcp/assets/architecture.html)
+
+*Animated, interactive diagram showing how Entry Points, Core Engine, Shopify Shell, and the GraphQL API connect*
+
+</div>
+
 ```mermaid
 flowchart TB
     subgraph ENTRY["Entry Points"]
