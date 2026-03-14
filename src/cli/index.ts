@@ -75,6 +75,7 @@ program
 	.command("config")
 	.description("Manage configuration")
 	.allowUnknownOption()
+	.allowExcessArguments()
 	.action(async () => {
 		const { runCommand } = await import("citty");
 		const mod = await import("./commands/config/index.js");
@@ -85,6 +86,7 @@ program
 	.command("tools")
 	.description("List, inspect, and run tools")
 	.allowUnknownOption()
+	.allowExcessArguments()
 	.action(async () => {
 		const { runCommand } = await import("citty");
 		const mod = await import("./commands/tools/index.js");
@@ -95,6 +97,7 @@ program
 	.command("stores")
 	.description("Manage connected stores")
 	.allowUnknownOption()
+	.allowExcessArguments()
 	.action(async () => {
 		const { runCommand } = await import("citty");
 		const mod = await import("./commands/stores/index.js");
