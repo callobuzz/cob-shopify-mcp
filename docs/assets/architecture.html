@@ -719,6 +719,7 @@
       <a href="#shell" class="nav-link" data-section="shell">Shopify Shell</a>
       <a href="#flow" class="nav-link" data-section="flow">Data Flow</a>
       <a href="#tiers" class="nav-link" data-section="tiers">Tier System</a>
+      <a href="#advertise" class="nav-link" data-section="advertise">Advertise &amp; Activate</a>
       <a href="#usecases" class="nav-link" data-section="usecases">Use Cases</a>
     </div>
   </nav>
@@ -1385,12 +1386,97 @@ flowchart LR
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 6b: Advertise-and-Activate                           -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section" id="advertise" style="background: linear-gradient(180deg, var(--bg-section-6) 0%, var(--bg-section-1) 100%);">
+    <div class="section-inner">
+      <div class="section-head reveal">
+        <div class="section-label">06 &mdash; Advertise &amp; Activate</div>
+        <h2 class="section-title">82% Context Token Reduction</h2>
+        <p class="section-subtitle">Instead of injecting all 49 tool schemas into AI context (~16,000 tokens), register one meta-tool with domain summaries (~300 tokens). AI activates only what it needs.</p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-top:2.5rem;">
+        <!-- Before card -->
+        <div class="card reveal reveal-delay-1" style="border-left:3px solid var(--red);">
+          <div class="card-icon">❌</div>
+          <h3 class="card-title">Before (Default MCP)</h3>
+          <div class="card-desc">Every MCP server dumps all tool schemas on connect. 49 tools = ~16,000 tokens consumed before the user asks a question. 95% wasted on tools never called.</div>
+          <div style="margin-top:0.75rem;font-family:monospace;font-size:0.75rem;color:var(--red);background:rgba(239,68,68,0.1);padding:0.5rem;border-radius:6px;">
+            49 schemas → ~16,000 tokens/prompt
+          </div>
+        </div>
+
+        <!-- After card -->
+        <div class="card reveal reveal-delay-2" style="border-left:3px solid var(--green);">
+          <div class="card-icon">✅</div>
+          <h3 class="card-title">After (Advertise &amp; Activate)</h3>
+          <div class="card-desc">One meta-tool <code>activate_tools</code> with domain summaries. AI calls <code>activate_tools("analytics")</code> to load only the 6 tools it needs.</div>
+          <div style="margin-top:0.75rem;font-family:monospace;font-size:0.75rem;color:var(--green);background:rgba(16,185,129,0.1);padding:0.5rem;border-radius:6px;">
+            1 meta-tool → ~300 tokens + on-demand
+          </div>
+        </div>
+
+        <!-- How it works card -->
+        <div class="card reveal reveal-delay-3" style="border-left:3px solid var(--purple);">
+          <div class="card-icon">⚡</div>
+          <h3 class="card-title">How It Works</h3>
+          <div class="card-desc" style="font-size:0.82rem;">
+            <strong>1. Connect</strong> — AI sees <code>activate_tools</code> with 5 domain summaries<br/>
+            <strong>2. Activate</strong> — AI calls <code>activate_tools("analytics")</code><br/>
+            <strong>3. Execute</strong> — 6 analytics tools registered, AI calls <code>top_products</code>
+          </div>
+          <div style="margin-top:0.75rem;font-family:monospace;font-size:0.75rem;color:var(--purple-light);background:rgba(139,92,246,0.1);padding:0.5rem;border-radius:6px;">
+            82% reduction · No competitor has this
+          </div>
+        </div>
+      </div>
+
+      <!-- Domains summary -->
+      <div style="margin-top:2.5rem;" class="reveal">
+        <h3 style="color:var(--text-muted);font-size:0.85rem;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1rem;">Available Domains</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.75rem;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0.75rem;">
+            <div style="font-weight:600;color:var(--green-light);">Products</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">15 tools — list, search, get, create, update, variants, collections</div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0.75rem;">
+            <div style="font-weight:600;color:var(--blue-light);">Orders</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">12 tools — list, search, get, fulfillments, draft orders, tracking</div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0.75rem;">
+            <div style="font-weight:600;color:var(--purple-light);">Customers</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">9 tools — list, search, get, create, lifetime value, tags</div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0.75rem;">
+            <div style="font-weight:600;color:var(--orange);">Inventory</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">7 tools — stock levels, adjustments, SKU lookup, low-stock</div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0.75rem;">
+            <div style="font-weight:600;color:var(--cyan);">Analytics</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">6 tools — sales summary, top products, refund rates, trends</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enable config -->
+      <div style="margin-top:2rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.25rem;" class="reveal">
+        <h3 style="font-size:0.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.75rem;">Enable It</h3>
+        <div style="font-family:monospace;font-size:0.8rem;color:var(--green-light);line-height:1.8;">
+          <div>Config: <code style="background:rgba(16,185,129,0.15);padding:0.15rem 0.4rem;border-radius:4px;">tools.advertise_and_activate: true</code></div>
+          <div>Env var: <code style="background:rgba(16,185,129,0.15);padding:0.15rem 0.4rem;border-radius:4px;">COB_SHOPIFY_ADVERTISE_AND_ACTIVATE=true</code></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
   <!-- SECTION 7: Use Cases                                         -->
   <!-- ══════════════════════════════════════════════════════════════ -->
   <section class="section" id="usecases" style="background: radial-gradient(ellipse at 50% 0%, var(--glow-purple) 0%, transparent 60%), var(--bg-section-2);">
     <div class="section-inner">
       <div class="section-head reveal">
-        <div class="section-label">06 &mdash; Use Cases</div>
+        <div class="section-label">07 &mdash; Use Cases</div>
         <h2 class="section-title">Who Uses This &amp; How</h2>
         <p class="section-subtitle">From AI chatbots to multi-agent orchestration — every team in an ecommerce business can leverage cob-shopify-mcp as their Shopify brain.</p>
       </div>

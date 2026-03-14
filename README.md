@@ -85,6 +85,34 @@ COB_SHOPIFY_ADVERTISE_AND_ACTIVATE=true
 
 Custom YAML tools are included automatically — they declare a domain and appear in the corresponding summary.
 
+## CLI as Agent Tool (Zero-Config AI Access)
+
+AI agents like Claude Code and Cursor have built-in terminal access. That means they can run CLI commands directly — no MCP server needed, no config required:
+
+```bash
+# AI agent runs this via its Bash tool — zero setup
+cob-shopify products list --limit 5 --json
+cob-shopify orders get-by-name --name "#1001" --json
+cob-shopify analytics sales-summary --start_date 2026-01-01 --end_date 2026-03-15 --json
+```
+
+Every command outputs clean JSON when piped or when `--json` is passed. The AI reads the output and uses the data. The `--schema` flag lets the AI discover what inputs any command accepts:
+
+```bash
+cob-shopify products list --schema   # AI reads the schema, knows what flags to pass
+```
+
+**No MCP connection, no server process, no protocol overhead.** Just `npm install -g cob-shopify-mcp` and the AI can use every tool immediately.
+
+| | **CLI via Agent's Terminal** | **MCP Protocol** |
+|---|---|---|
+| **Setup** | `npm install -g` only | Install + `claude mcp add` config |
+| **Tool discovery** | `--schema` flag per command | Automatic schema injection |
+| **Context cost** | Zero tokens | ~16K tokens (or ~800 with Advertise-and-Activate) |
+| **Best for** | Quick access, zero-config, CI/CD | Rich tool discovery, multi-agent, streaming |
+
+**You don't have to choose** — install once, use both. Same tools, same engine, same Shopify API.
+
 ## Use Cases
 
 ```mermaid
@@ -99,7 +127,7 @@ flowchart LR
         AUTO["Automation Workflows"]
     end
 
-    MCP["cob-shopify-mcp\n49 tools · 4 resources · 4 prompts"]
+    MCP["cob-shopify-mcp\n49 tools · 4 resources · 4 prompts\nAdvertise-and-Activate: 82% less context"]
 
     SHOPIFY["Shopify Store"]
 
@@ -833,7 +861,7 @@ COB_SHOPIFY_READ_ONLY=true                 # Disable ALL write operations
 | **Auth methods** | **3** (static, client-creds, OAuth) | 2 | 1 | 1 | 2 |
 | **HTTP Transport** | **Streamable HTTP** | No | No | No | No |
 | **Encrypted Storage** | **JSON + SQLite** | No | No | No | No |
-| **Unit Tests** | **561** | ~2 | minimal | 1 | ~2 |
+| **Unit Tests** | **573** | ~2 | minimal | 1 | ~2 |
 | **Docker** | **Multi-stage** | No | No | No | No |
 | **Rate Limiter** | **Yes** | No | No | No | No |
 | **Query Cache** | **Yes** | No | No | No | No |
