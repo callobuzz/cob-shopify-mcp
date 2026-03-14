@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **cob-shopify-mcp** — the definitive open-source MCP server for Shopify. Bridges AI systems (LLM agents, chatbots, automation pipelines) to the entire Shopify Admin GraphQL API through the Model Context Protocol.
 
 **Package:** `cob-shopify-mcp` on npm
+**Changelog:** `CHANGELOG.md` — maintained with every release, follows [Keep a Changelog](https://keepachangelog.com/) format
 **Design Doc:** `docs/plans/2026-03-14-architecture-design.md`
 **Ideation PRDs (brainstorming only, not specs):** `docs/idea_prd*.md`
 
