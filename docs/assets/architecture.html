@@ -4,238 +4,1401 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>cob-shopify-mcp — Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-deep: #06061a;
+      --bg-section-1: #08082a;
+      --bg-section-2: #0a0b2e;
+      --bg-section-3: #0c0d32;
+      --bg-section-4: #0a0e28;
+      --bg-section-5: #080c24;
+      --bg-section-6: #0a0a20;
+      --purple: #8b5cf6;
+      --purple-light: #a78bfa;
+      --purple-dark: #6d28d9;
+      --blue: #3b82f6;
+      --blue-light: #60a5fa;
+      --green: #10b981;
+      --green-light: #34d399;
+      --red: #ef4444;
+      --orange: #f97316;
+      --cyan: #06b6d4;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --surface: rgba(255,255,255,0.04);
+      --surface-hover: rgba(255,255,255,0.08);
+      --border: rgba(139,92,246,0.2);
+      --glow-purple: rgba(139,92,246,0.15);
+      --glow-blue: rgba(59,130,246,0.15);
+      --glow-green: rgba(16,185,129,0.15);
+      --nav-height: 56px;
+    }
+
+    html { scroll-behavior: smooth; }
 
     body {
-      background: #0a0a1a;
-      color: #e0e0e0;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      background: var(--bg-deep);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      line-height: 1.6;
       overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Header ── */
-    .header {
-      text-align: center;
-      padding: 2rem 1rem 1rem;
-      width: 100%;
-      background: linear-gradient(180deg, #1a1a2e 0%, #0a0a1a 100%);
+    /* ── Sticky Nav ── */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--nav-height);
+      background: rgba(6,6,26,0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      padding: 0 1rem;
     }
-    .header h1 {
-      font-size: 2rem;
-      background: linear-gradient(135deg, #8b5cf6, #6c63ff, #3b82f6);
+    .nav-brand {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--purple-light);
+      margin-right: 2rem;
+      white-space: nowrap;
+      letter-spacing: -0.02em;
+    }
+    .nav-links {
+      display: flex;
+      gap: 0.25rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .nav-links::-webkit-scrollbar { display: none; }
+    .nav-link {
+      padding: 0.4rem 0.85rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-radius: 6px;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+      letter-spacing: -0.01em;
+    }
+    .nav-link:hover { color: var(--text); background: var(--surface-hover); }
+    .nav-link.active {
+      color: #fff;
+      background: rgba(139,92,246,0.25);
+    }
+
+    /* ── Sections ── */
+    .section {
+      min-height: 100vh;
+      padding: calc(var(--nav-height) + 3rem) 1.5rem 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .section-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Scroll-triggered reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
+
+    /* Section titles */
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--purple-light);
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #fff 0%, var(--text) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      margin-bottom: 0.5rem;
     }
-    .header p {
-      color: #888;
-      font-size: 0.95rem;
+    .section-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      line-height: 1.7;
     }
-    .legend {
-      display: flex;
-      gap: 1.5rem;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-top: 1rem;
-      font-size: 0.8rem;
-    }
-    .legend-item {
+
+    /* ── HERO Section ── */
+    .hero {
+      min-height: 100vh;
       display: flex;
       align-items: center;
-      gap: 0.4rem;
-    }
-    .legend-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 3px;
-    }
-
-    /* ── Diagram Container ── */
-    .diagram-container {
-      width: 100%;
-      max-width: 1400px;
-      padding: 1rem;
-      display: flex;
       justify-content: center;
+      text-align: center;
+      background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(139,92,246,0.12) 0%, transparent 70%),
+                  var(--bg-section-1);
+    }
+    .hero-inner { max-width: 900px; margin: 0 auto; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+    .hero-badge-dot {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+      50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+    }
+    .hero-title {
+      font-size: clamp(2.8rem, 7vw, 5rem);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 30%, #6366f1 60%, #3b82f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-tagline {
+      font-size: clamp(1.05rem, 2.5vw, 1.35rem);
+      color: var(--text-muted);
+      max-width: 550px;
+      margin: 0 auto 3.5rem;
+      line-height: 1.7;
+      font-weight: 400;
     }
 
-    /* ── Mermaid Overrides ── */
-    .mermaid {
-      width: 100%;
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 0.75rem;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+      background: var(--surface-hover);
+      border-color: rgba(139,92,246,0.4);
+      transform: translateY(-2px);
+    }
+    .stat-number {
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--purple-light), var(--blue-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: block;
+    }
+    .stat-label {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 0.25rem;
     }
 
-    /* ── Animations ── */
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes pulseGlow {
-      0%, 100% { filter: drop-shadow(0 0 3px rgba(108, 99, 255, 0.3)); }
-      50%      { filter: drop-shadow(0 0 12px rgba(108, 99, 255, 0.6)); }
-    }
-    @keyframes flowLine {
-      0%   { stroke-dashoffset: 20; }
-      100% { stroke-dashoffset: 0; }
-    }
-    @keyframes borderPulse {
-      0%, 100% { stroke-opacity: 0.6; }
-      50%      { stroke-opacity: 1; }
-    }
+    /* ── Section backgrounds ── */
+    .section-entry { background: linear-gradient(180deg, var(--bg-section-1) 0%, var(--bg-section-2) 100%); }
+    .section-core { background: linear-gradient(180deg, var(--bg-section-2) 0%, var(--bg-section-3) 100%); }
+    .section-shell { background: linear-gradient(180deg, var(--bg-section-3) 0%, var(--bg-section-4) 100%); }
+    .section-flow { background: linear-gradient(180deg, var(--bg-section-4) 0%, var(--bg-section-5) 100%); }
+    .section-tiers { background: linear-gradient(180deg, var(--bg-section-5) 0%, var(--bg-section-6) 100%); }
 
-    .mermaid svg {
-      animation: fadeInUp 0.8s ease-out;
-    }
-
-    /* Animate edges with flowing dashes */
-    .mermaid .flowchart-link {
-      stroke-dasharray: 5, 3 !important;
-      animation: flowLine 1.5s linear infinite !important;
-    }
-
-    /* Pulse effect on the API node */
-    .mermaid .node:last-of-type rect,
-    .mermaid .node:last-of-type polygon {
-      animation: pulseGlow 3s ease-in-out infinite;
-    }
-
-    /* Subgraph border animation */
-    .mermaid .cluster rect {
-      animation: borderPulse 4s ease-in-out infinite;
-      rx: 12;
-      ry: 12;
-    }
-
-    /* Node hover effect */
-    .mermaid .node:hover rect,
-    .mermaid .node:hover polygon {
-      filter: brightness(1.3) drop-shadow(0 0 8px rgba(108, 99, 255, 0.5));
-      cursor: pointer;
-      transition: filter 0.3s ease;
-    }
-
-    /* Tooltip styling */
-    .tooltip-box {
-      display: none;
-      position: fixed;
-      background: #1a1a2e;
-      border: 1px solid #6c63ff;
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      font-size: 0.85rem;
-      color: #e0e0e0;
-      max-width: 300px;
-      z-index: 1000;
-      box-shadow: 0 4px 20px rgba(108, 99, 255, 0.3);
+    /* Ambient glow per section */
+    .section-entry::before {
+      content: '';
+      position: absolute;
+      top: 15%;
+      right: -10%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, var(--glow-purple), transparent 70%);
       pointer-events: none;
     }
-    .tooltip-box.visible {
-      display: block;
-      animation: fadeInUp 0.2s ease-out;
+    .section-core::before {
+      content: '';
+      position: absolute;
+      top: 20%;
+      left: -10%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--glow-blue), transparent 70%);
+      pointer-events: none;
     }
-    .tooltip-box strong {
-      color: #8b5cf6;
+    .section-shell::before {
+      content: '';
+      position: absolute;
+      bottom: 10%;
+      right: -5%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, var(--glow-green), transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Diagram wrapper with zoom ── */
+    .diagram-wrap {
+      position: relative;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-top: 2.5rem;
+    }
+    .diagram-viewport {
+      overflow: hidden;
+      cursor: grab;
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .diagram-viewport:active { cursor: grabbing; }
+    .diagram-viewport .mermaid {
+      transform-origin: center center;
+      transition: transform 0.15s ease-out;
+    }
+    .diagram-controls {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      display: flex;
+      gap: 0.3rem;
+      z-index: 10;
+    }
+    .diagram-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(6,6,26,0.8);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      line-height: 1;
+    }
+    .diagram-btn:hover {
+      color: #fff;
+      background: rgba(139,92,246,0.3);
+      border-color: var(--purple);
+    }
+
+    /* ── Cards grid ── */
+    .cards-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-top: 2rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.75rem;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 14px 14px 0 0;
+    }
+    .card:hover {
+      border-color: rgba(139,92,246,0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    }
+    .card-purple::before { background: linear-gradient(90deg, var(--purple), var(--purple-light)); }
+    .card-blue::before { background: linear-gradient(90deg, var(--blue), var(--blue-light)); }
+    .card-green::before { background: linear-gradient(90deg, var(--green), var(--green-light)); }
+    .card-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+    }
+    .card-icon-purple { background: rgba(139,92,246,0.15); }
+    .card-icon-blue { background: rgba(59,130,246,0.15); }
+    .card-icon-green { background: rgba(16,185,129,0.15); }
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+      letter-spacing: -0.02em;
+    }
+    .card-desc {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.75rem;
+    }
+    .card-tag {
+      font-size: 0.72rem;
+      padding: 0.2rem 0.55rem;
+      background: rgba(255,255,255,0.06);
+      border-radius: 100px;
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+
+    /* ── Pipeline / Data Flow ── */
+    .pipeline {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+      margin-top: 2.5rem;
+      position: relative;
+    }
+    .pipeline::before {
+      content: '';
+      position: absolute;
+      left: 28px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, var(--purple), var(--blue), var(--green), var(--blue), var(--purple));
+    }
+    .pipeline-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.25rem;
+      padding: 1rem 0;
+      position: relative;
+    }
+    .pipeline-num {
+      width: 56px;
+      height: 56px;
+      min-width: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 700;
+      position: relative;
+      z-index: 2;
+    }
+    .pipeline-content {
+      flex: 1;
+      padding-top: 0.65rem;
+    }
+    .pipeline-title {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 0.2rem;
+      letter-spacing: -0.01em;
+    }
+    .pipeline-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .pipe-req .pipeline-num { background: rgba(139,92,246,0.2); color: var(--purple-light); border: 2px solid var(--purple); }
+    .pipe-exec .pipeline-num { background: rgba(59,130,246,0.2); color: var(--blue-light); border: 2px solid var(--blue); }
+    .pipe-resp .pipeline-num { background: rgba(16,185,129,0.2); color: var(--green-light); border: 2px solid var(--green); }
+
+    /* ── Tier lanes ── */
+    .tier-lanes {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      margin-top: 2.5rem;
+    }
+    .tier-lane {
+      border-radius: 14px;
+      padding: 1.75rem 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .tier-lane::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+    }
+    .tier-1 {
+      background: rgba(16,185,129,0.06);
+      border: 1px solid rgba(16,185,129,0.2);
+    }
+    .tier-1::before { background: var(--green); }
+    .tier-2 {
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+    }
+    .tier-2::before { background: var(--red); }
+    .tier-3 {
+      background: rgba(59,130,246,0.06);
+      border: 1px solid rgba(59,130,246,0.2);
+    }
+    .tier-3::before { background: var(--blue); }
+    .tier-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .tier-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .tier-1 .tier-badge { background: rgba(16,185,129,0.2); color: var(--green-light); }
+    .tier-2 .tier-badge { background: rgba(239,68,68,0.2); color: #fca5a5; }
+    .tier-3 .tier-badge { background: rgba(59,130,246,0.2); color: var(--blue-light); }
+    .tier-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+    .tier-1 .tier-title { color: var(--green-light); }
+    .tier-2 .tier-title { color: #fca5a5; }
+    .tier-3 .tier-title { color: var(--blue-light); }
+    .tier-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      line-height: 1.6;
+    }
+    .tier-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .tier-item {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 100px;
+      font-weight: 500;
+    }
+    .tier-1 .tier-item { background: rgba(16,185,129,0.12); color: var(--green-light); }
+    .tier-2 .tier-item { background: rgba(239,68,68,0.12); color: #fca5a5; }
+    .tier-3 .tier-item { background: rgba(59,130,246,0.12); color: var(--blue-light); }
+
+    /* ── Domain grid for Shopify Shell ── */
+    .domain-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .domain-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .domain-card:hover {
+      border-color: rgba(16,185,129,0.4);
+      transform: translateY(-2px);
+    }
+    .domain-count {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--green-light);
+    }
+    .domain-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-top: 0.15rem;
+    }
+    .domain-tools {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-top: 0.3rem;
+    }
+
+    /* ── Resource & Prompt rows ── */
+    .prim-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .prim-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .prim-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .prim-icon-cyan { background: rgba(6,182,212,0.15); }
+    .prim-icon-amber { background: rgba(245,158,11,0.15); }
+    .prim-text-title { font-weight: 600; font-size: 0.9rem; }
+    .prim-text-desc { font-size: 0.78rem; color: var(--text-dim); }
+
+    /* ── Section heading row (title + subtitle side by side on wide) ── */
+    .section-head {
+      margin-bottom: 1rem;
     }
 
     /* ── Footer ── */
     .footer {
+      padding: 3rem 1.5rem;
       text-align: center;
-      padding: 1.5rem;
-      color: #555;
-      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-deep);
     }
-    .footer a {
-      color: #6c63ff;
-      text-decoration: none;
+    .footer-brand {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--purple-light);
+      margin-bottom: 0.5rem;
     }
-    .footer a:hover {
-      text-decoration: underline;
+    .footer-desc {
+      font-size: 0.88rem;
+      color: var(--text-dim);
+      margin-bottom: 1.5rem;
     }
-
-    /* ── Controls ── */
-    .controls {
+    .footer-links {
       display: flex;
-      gap: 0.75rem;
+      gap: 1.5rem;
       justify-content: center;
-      padding: 0.5rem;
       flex-wrap: wrap;
     }
-    .controls button {
-      background: #1a1a2e;
-      border: 1px solid #6c63ff;
-      color: #e0e0e0;
-      padding: 0.4rem 1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.8rem;
+    .footer-link {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
       transition: all 0.2s;
+      font-weight: 500;
     }
-    .controls button:hover {
-      background: #6c63ff;
+    .footer-link:hover {
       color: #fff;
+      border-color: var(--purple);
+      background: rgba(139,92,246,0.1);
     }
-    .controls button.active {
-      background: #6c63ff;
-      color: #fff;
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .nav-brand { display: none; }
+      .nav-link { font-size: 0.72rem; padding: 0.35rem 0.6rem; }
+      .section { padding-left: 1rem; padding-right: 1rem; }
+      .card { padding: 1.25rem; }
+      .tier-lane { padding: 1.25rem; }
+      .pipeline::before { left: 20px; }
+      .pipeline-num { width: 40px; height: 40px; min-width: 40px; font-size: 0.75rem; }
+      .diagram-viewport { padding: 1rem; }
+      .domain-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+      .stat-card { padding: 0.9rem 0.5rem; }
+      .nav-links { gap: 0.1rem; }
+      .cards-row { grid-template-columns: 1fr; }
+      .domain-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ── Mermaid SVG overrides ── */
+    .mermaid svg {
+      max-width: 100%;
+      height: auto;
+    }
+    .mermaid .node rect,
+    .mermaid .node polygon,
+    .mermaid .node circle {
+      transition: filter 0.2s ease;
+    }
+    .mermaid .node:hover rect,
+    .mermaid .node:hover polygon {
+      filter: brightness(1.25) drop-shadow(0 0 8px rgba(139,92,246,0.4));
+      cursor: pointer;
+    }
+    .mermaid .cluster rect {
+      rx: 12;
+      ry: 12;
+    }
+    .mermaid .flowchart-link {
+      stroke-dasharray: 6, 3 !important;
+      animation: dash-flow 2s linear infinite !important;
+    }
+    @keyframes dash-flow {
+      to { stroke-dashoffset: -18; }
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>🛍️ cob-shopify-mcp</h1>
-    <p>Architecture — Core + Shell with Config-Driven Tool Engine</p>
-    <div class="legend">
-      <div class="legend-item">
-        <div class="legend-dot" style="background: #8b5cf6;"></div>
-        <span>Entry Points</span>
+
+  <!-- ── Sticky Nav ── -->
+  <nav class="nav" id="nav">
+    <span class="nav-brand">cob-shopify-mcp</span>
+    <div class="nav-links">
+      <a href="#hero" class="nav-link active" data-section="hero">Overview</a>
+      <a href="#entry" class="nav-link" data-section="entry">Entry Points</a>
+      <a href="#core" class="nav-link" data-section="core">Core Engine</a>
+      <a href="#shell" class="nav-link" data-section="shell">Shopify Shell</a>
+      <a href="#flow" class="nav-link" data-section="flow">Data Flow</a>
+      <a href="#tiers" class="nav-link" data-section="tiers">Tier System</a>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 1: Hero                                              -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="hero section" id="hero">
+    <div class="hero-inner">
+      <div class="reveal">
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          Open Source &middot; Production-Grade &middot; MCP v1
+        </div>
       </div>
-      <div class="legend-item">
-        <div class="legend-dot" style="background: #3b82f6;"></div>
-        <span>Core Engine</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-dot" style="background: #10b981;"></div>
-        <span>Shopify Shell</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-dot" style="background: #ef4444;"></div>
-        <span>Tier 2 (Disabled)</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-dot" style="background: #7c3aed;"></div>
-        <span>Shopify API</span>
+      <h1 class="hero-title reveal reveal-delay-1">cob-shopify-mcp</h1>
+      <p class="hero-tagline reveal reveal-delay-2">
+        The definitive Model Context Protocol server for Shopify.
+        Bridge any AI agent to the Shopify Admin API with type-safe, config-driven tooling.
+      </p>
+      <div class="stats-grid reveal reveal-delay-3">
+        <div class="stat-card">
+          <span class="stat-number" data-target="49">0</span>
+          <span class="stat-label">Tools</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" data-target="5">0</span>
+          <span class="stat-label">Domains</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" data-target="4">0</span>
+          <span class="stat-label">Resources</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" data-target="4">0</span>
+          <span class="stat-label">Prompts</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" data-target="3">0</span>
+          <span class="stat-label">Auth Methods</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" data-target="2">0</span>
+          <span class="stat-label">Transports</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" data-target="2">0</span>
+          <span class="stat-label">Storage Backends</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" data-target="397">0</span>
+          <span class="stat-label">Tests</span>
+        </div>
       </div>
     </div>
-    <div class="controls">
-      <button id="btn-full" class="active" onclick="showView('full')">Full Architecture</button>
-      <button id="btn-core" onclick="showView('core')">Core Engine</button>
-      <button id="btn-shopify" onclick="showView('shopify')">Shopify Shell</button>
-      <button id="btn-data" onclick="showView('data')">Data Flow</button>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 2: Entry Points                                      -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section section-entry" id="entry">
+    <div class="section-inner">
+      <div class="section-head reveal">
+        <div class="section-label">01 &mdash; Entry Points</div>
+        <h2 class="section-title">How Requests Get In</h2>
+        <p class="section-subtitle">Three entry points into the MCP server, supporting CLI workflows, direct stdio piping, and remote HTTP connections.</p>
+      </div>
+
+      <div class="cards-row">
+        <div class="card card-purple reveal reveal-delay-1">
+          <div class="card-icon card-icon-purple">&#9654;</div>
+          <div class="card-title">CLI</div>
+          <div class="card-desc">Developer-facing command-line interface built with citty + consola. Dynamic tool discovery to minimize token usage.</div>
+          <div class="card-tags">
+            <span class="card-tag">connect</span>
+            <span class="card-tag">serve</span>
+            <span class="card-tag">tools</span>
+            <span class="card-tag">citty</span>
+            <span class="card-tag">consola</span>
+          </div>
+        </div>
+        <div class="card card-blue reveal reveal-delay-2">
+          <div class="card-icon card-icon-blue">&#8644;</div>
+          <div class="card-title">stdio Transport</div>
+          <div class="card-desc">Standard MCP transport via StdioServerTransport. Process-level piping for local agents, IDE integrations, and Claude Desktop.</div>
+          <div class="card-tags">
+            <span class="card-tag">StdioServerTransport</span>
+            <span class="card-tag">local</span>
+            <span class="card-tag">pipe</span>
+          </div>
+        </div>
+        <div class="card card-green reveal reveal-delay-3">
+          <div class="card-icon card-icon-green">&#127760;</div>
+          <div class="card-title">HTTP Transport</div>
+          <div class="card-desc">Streamable HTTP transport for remote clients. Enables multi-agent deployments, web dashboards, and cloud-hosted servers.</div>
+          <div class="card-tags">
+            <span class="card-tag">StreamableHTTPServerTransport</span>
+            <span class="card-tag">remote</span>
+            <span class="card-tag">port config</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="diagram-wrap reveal reveal-delay-4">
+        <div class="diagram-controls">
+          <button class="diagram-btn" onclick="zoomDiagram('entry-diagram', 1)">+</button>
+          <button class="diagram-btn" onclick="zoomDiagram('entry-diagram', -1)">&minus;</button>
+          <button class="diagram-btn" onclick="resetDiagram('entry-diagram')" style="font-size:0.7rem;">R</button>
+        </div>
+        <div class="diagram-viewport" id="entry-diagram-vp">
+          <pre class="mermaid" id="entry-diagram">
+flowchart LR
+    CLI["<b>CLI</b><br/><i>citty + consola</i><br/>connect &middot; serve &middot; tools"]
+    STDIO["<b>stdio Transport</b><br/><i>StdioServerTransport</i>"]
+    HTTP["<b>HTTP Transport</b><br/><i>StreamableHTTPServerTransport</i>"]
+
+    MCP["<b>MCP Server</b><br/><i>@modelcontextprotocol/sdk</i>"]
+
+    CLI --> MCP
+    STDIO --> MCP
+    HTTP --> MCP
+
+    MCP --> CORE["Core Engine"]
+
+    style CLI fill:#2d1b69,stroke:#8b5cf6,stroke-width:2px,color:#e0e0e0
+    style STDIO fill:#162d50,stroke:#3b82f6,stroke-width:2px,color:#e0e0e0
+    style HTTP fill:#0f3425,stroke:#10b981,stroke-width:2px,color:#e0e0e0
+    style MCP fill:#1a1a2e,stroke:#6c63ff,stroke-width:2px,color:#e0e0e0
+    style CORE fill:#1a1a2e,stroke:#a78bfa,stroke-width:2px,color:#e0e0e0
+          </pre>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div class="diagram-container">
-    <pre class="mermaid" id="diagram">
-    </pre>
-  </div>
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 3: Core Engine                                       -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section section-core" id="core">
+    <div class="section-inner">
+      <div class="section-head reveal">
+        <div class="section-label">02 &mdash; Core Engine</div>
+        <h2 class="section-title">The Brain</h2>
+        <p class="section-subtitle">API-agnostic MCP engine. Discovers tools, manages configuration, executes requests, and handles all cross-cutting concerns.</p>
+      </div>
 
-  <div id="tooltip" class="tooltip-box"></div>
+      <div class="cards-row">
+        <div class="card card-blue reveal reveal-delay-1">
+          <div class="card-icon card-icon-blue">&#128270;</div>
+          <div class="card-title">Registry &amp; Discovery</div>
+          <div class="card-desc">Auto-discovers definitions via glob (*.tool.ts, *.tool.yaml), registers into the Tool Registry, and applies config-driven filtering via tiers and enable/disable rules.</div>
+          <div class="card-tags">
+            <span class="card-tag">auto-discover</span>
+            <span class="card-tag">tool registry</span>
+            <span class="card-tag">config filter</span>
+            <span class="card-tag">tiers</span>
+          </div>
+        </div>
+        <div class="card card-purple reveal reveal-delay-2">
+          <div class="card-icon card-icon-purple">&#9881;</div>
+          <div class="card-title">Execution Engines</div>
+          <div class="card-desc">Three MCP primitive engines. The Tool Engine validates input, executes against the API, and maps responses. Resource and Prompt engines serve read-only data and templates.</div>
+          <div class="card-tags">
+            <span class="card-tag">Tool Engine</span>
+            <span class="card-tag">Resource Engine</span>
+            <span class="card-tag">Prompt Engine</span>
+          </div>
+        </div>
+        <div class="card card-green reveal reveal-delay-3">
+          <div class="card-icon card-icon-green">&#128737;</div>
+          <div class="card-title">Infrastructure</div>
+          <div class="card-desc">Auth Manager (static token, client credentials, OAuth), structured logging via pino, cost tracking, audit trails, and pluggable storage (JSON or SQLite with encryption).</div>
+          <div class="card-tags">
+            <span class="card-tag">auth manager</span>
+            <span class="card-tag">pino logger</span>
+            <span class="card-tag">cost tracker</span>
+            <span class="card-tag">audit</span>
+            <span class="card-tag">JSON storage</span>
+            <span class="card-tag">SQLite + encryption</span>
+          </div>
+        </div>
+      </div>
 
-  <div class="footer">
-    <p>cob-shopify-mcp — The definitive open-source MCP server for Shopify</p>
-    <p><a href="https://github.com/callobuzz/cob-shopify-mcp">GitHub</a> · Open this file in any browser to view</p>
-  </div>
+      <div class="diagram-wrap reveal reveal-delay-4">
+        <div class="diagram-controls">
+          <button class="diagram-btn" onclick="zoomDiagram('core-diagram', 1)">+</button>
+          <button class="diagram-btn" onclick="zoomDiagram('core-diagram', -1)">&minus;</button>
+          <button class="diagram-btn" onclick="resetDiagram('core-diagram')" style="font-size:0.7rem;">R</button>
+        </div>
+        <div class="diagram-viewport" id="core-diagram-vp">
+          <pre class="mermaid" id="core-diagram">
+flowchart TB
+    subgraph REG["Registry &amp; Discovery"]
+        direction LR
+        AD["<b>Auto-Discover</b><br/><i>*.tool.ts &middot; *.tool.yaml</i>"]
+        TREG["<b>Tool Registry</b><br/><i>register &middot; list &middot; filter</i>"]
+        CF["<b>Config Filter</b><br/><i>enable &middot; disable &middot; tiers</i>"]
+    end
 
+    subgraph ENG["Execution Engines"]
+        direction LR
+        TE["<b>Tool Engine</b><br/><i>schema &rarr; execute &rarr; map</i>"]
+        RE["<b>Resource Engine</b><br/><i>read-only data</i>"]
+        PE["<b>Prompt Engine</b><br/><i>templates &amp; workflows</i>"]
+    end
+
+    subgraph INF["Infrastructure"]
+        direction LR
+        AUTH["<b>Auth Manager</b><br/><i>static &middot; credentials &middot; OAuth</i>"]
+        OBS["<b>Observability</b><br/><i>pino &middot; cost tracker &middot; audit</i>"]
+        STR["<b>Storage</b><br/><i>JSON &middot; SQLite + encryption</i>"]
+    end
+
+    DT["<b>defineTool() &middot; defineResource() &middot; definePrompt()</b>"]
+
+    AD --> TREG --> CF
+    CF --> TE
+    CF --> RE
+    CF --> PE
+    DT -.-> TREG
+    AUTH -.-> TE
+    OBS -.-> TE
+    STR -.-> AUTH
+
+    style REG fill:#162d50,stroke:#3b82f6,stroke-width:2px,color:#e0e0e0
+    style ENG fill:#162d50,stroke:#3b82f6,stroke-width:2px,color:#e0e0e0
+    style INF fill:#162d50,stroke:#3b82f6,stroke-width:2px,color:#e0e0e0
+    style DT fill:#7c2d12,stroke:#f97316,stroke-width:2px,color:#e0e0e0
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 4: Shopify Shell                                     -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section section-shell" id="shell">
+    <div class="section-inner">
+      <div class="section-head reveal">
+        <div class="section-label">03 &mdash; Shopify Shell</div>
+        <h2 class="section-title">The Implementation</h2>
+        <p class="section-subtitle">Shopify-specific layer: GraphQL client with rate limiting and caching, 49 tools across 5 domains, 4 resources, and 4 prompts.</p>
+      </div>
+
+      <!-- GraphQL client cards -->
+      <div class="cards-row" style="margin-bottom: 2.5rem;">
+        <div class="card card-green reveal reveal-delay-1">
+          <div class="card-icon card-icon-green">&#128279;</div>
+          <div class="card-title">GraphQL Client</div>
+          <div class="card-desc">Built on @shopify/admin-api-client with a middleware pipeline: Rate Limiter (token bucket) &rarr; Cache Layer (TTL-based) &rarr; Retry (exponential backoff).</div>
+          <div class="card-tags">
+            <span class="card-tag">@shopify/admin-api-client</span>
+            <span class="card-tag">rate limiter</span>
+            <span class="card-tag">cache</span>
+            <span class="card-tag">retry</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tool domains -->
+      <h3 class="reveal" style="font-size:1rem; font-weight:700; color:var(--green-light); margin-bottom:0.25rem;">49 Tools &mdash; 5 Domains</h3>
+      <p class="reveal" style="font-size:0.88rem; color:var(--text-muted); margin-bottom:0;">Type-safe, co-located tool definitions with Zod v4 schemas.</p>
+      <div class="domain-grid reveal reveal-delay-1">
+        <div class="domain-card">
+          <div class="domain-count">15</div>
+          <div class="domain-name">Products</div>
+          <div class="domain-tools">list &middot; get &middot; search &middot; create &middot; update &middot; variants &middot; collections &middot; tags &middot; status</div>
+        </div>
+        <div class="domain-card">
+          <div class="domain-count">12</div>
+          <div class="domain-name">Orders</div>
+          <div class="domain-tools">list &middot; search &middot; get &middot; timeline &middot; fulfillment &middot; draft &middot; notes &middot; tags &middot; mark paid</div>
+        </div>
+        <div class="domain-card">
+          <div class="domain-count">9</div>
+          <div class="domain-name">Customers</div>
+          <div class="domain-tools">list &middot; search &middot; get &middot; orders &middot; LTV &middot; create &middot; update &middot; tags</div>
+        </div>
+        <div class="domain-card">
+          <div class="domain-count">7</div>
+          <div class="domain-name">Inventory</div>
+          <div class="domain-tools">item &middot; SKU &middot; levels &middot; location &middot; low stock &middot; adjust &middot; set</div>
+        </div>
+        <div class="domain-card">
+          <div class="domain-count">6</div>
+          <div class="domain-name">Analytics</div>
+          <div class="domain-tools">sales &middot; top products &middot; orders &middot; refunds &middot; repeat rate &middot; risk</div>
+        </div>
+      </div>
+
+      <!-- Resources & Prompts -->
+      <div style="margin-top: 2.5rem;">
+        <h3 class="reveal" style="font-size:1rem; font-weight:700; color:var(--cyan); margin-bottom:0.75rem;">Resources &amp; Prompts</h3>
+        <div class="prim-grid reveal reveal-delay-1">
+          <div class="prim-item">
+            <div class="prim-icon prim-icon-cyan">&#128203;</div>
+            <div>
+              <div class="prim-text-title">Shop Info</div>
+              <div class="prim-text-desc">Resource &mdash; store details</div>
+            </div>
+          </div>
+          <div class="prim-item">
+            <div class="prim-icon prim-icon-cyan">&#128205;</div>
+            <div>
+              <div class="prim-text-title">Locations</div>
+              <div class="prim-text-desc">Resource &mdash; all locations</div>
+            </div>
+          </div>
+          <div class="prim-item">
+            <div class="prim-icon prim-icon-cyan">&#128176;</div>
+            <div>
+              <div class="prim-text-title">Currencies</div>
+              <div class="prim-text-desc">Resource &mdash; enabled currencies</div>
+            </div>
+          </div>
+          <div class="prim-item">
+            <div class="prim-icon prim-icon-cyan">&#128220;</div>
+            <div>
+              <div class="prim-text-title">Policies</div>
+              <div class="prim-text-desc">Resource &mdash; store policies</div>
+            </div>
+          </div>
+        </div>
+        <div class="prim-grid reveal reveal-delay-2" style="margin-top:0.75rem;">
+          <div class="prim-item">
+            <div class="prim-icon prim-icon-amber">&#128161;</div>
+            <div>
+              <div class="prim-text-title">Store Health Check</div>
+              <div class="prim-text-desc">Prompt &mdash; comprehensive audit</div>
+            </div>
+          </div>
+          <div class="prim-item">
+            <div class="prim-icon prim-icon-amber">&#128200;</div>
+            <div>
+              <div class="prim-text-title">Daily Sales Report</div>
+              <div class="prim-text-desc">Prompt &mdash; revenue summary</div>
+            </div>
+          </div>
+          <div class="prim-item">
+            <div class="prim-icon prim-icon-amber">&#128230;</div>
+            <div>
+              <div class="prim-text-title">Inventory Risk Analysis</div>
+              <div class="prim-text-desc">Prompt &mdash; stock alerts</div>
+            </div>
+          </div>
+          <div class="prim-item">
+            <div class="prim-icon prim-icon-amber">&#128172;</div>
+            <div>
+              <div class="prim-text-title">Customer Support Summary</div>
+              <div class="prim-text-desc">Prompt &mdash; CS insights</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="diagram-wrap reveal reveal-delay-3">
+        <div class="diagram-controls">
+          <button class="diagram-btn" onclick="zoomDiagram('shell-diagram', 1)">+</button>
+          <button class="diagram-btn" onclick="zoomDiagram('shell-diagram', -1)">&minus;</button>
+          <button class="diagram-btn" onclick="resetDiagram('shell-diagram')" style="font-size:0.7rem;">R</button>
+        </div>
+        <div class="diagram-viewport" id="shell-diagram-vp">
+          <pre class="mermaid" id="shell-diagram">
+flowchart TB
+    subgraph CLIENT["GraphQL Client Pipeline"]
+        direction LR
+        CL["<b>@shopify/admin-api-client</b><br/><i>createAdminApiClient()</i>"]
+        RL["<b>Rate Limiter</b><br/><i>token bucket</i>"]
+        CA["<b>Cache Layer</b><br/><i>TTL-based</i>"]
+        RT["<b>Retry</b><br/><i>exponential backoff</i>"]
+    end
+
+    subgraph TOOLS["49 Tools &mdash; 5 Domains"]
+        direction LR
+        P["<b>Products</b><br/>15 tools"]
+        O["<b>Orders</b><br/>12 tools"]
+        C["<b>Customers</b><br/>9 tools"]
+        I["<b>Inventory</b><br/>7 tools"]
+        A["<b>Analytics</b><br/>6 tools"]
+    end
+
+    subgraph PRIM["MCP Primitives"]
+        direction LR
+        RES["<b>4 Resources</b><br/><i>shop &middot; locations &middot; currencies &middot; policies</i>"]
+        PRM["<b>4 Prompts</b><br/><i>health &middot; sales &middot; risk &middot; support</i>"]
+    end
+
+    API["<b>Shopify Admin GraphQL API</b><br/><i>v2026-01</i>"]
+
+    CL --> RL --> CA --> RT
+    TOOLS --> CL
+    PRIM --> CL
+    RT --> API
+
+    style CLIENT fill:#1a4731,stroke:#10b981,stroke-width:2px,color:#e0e0e0
+    style TOOLS fill:#1a4731,stroke:#10b981,stroke-width:2px,color:#e0e0e0
+    style PRIM fill:#1a4731,stroke:#10b981,stroke-width:2px,color:#e0e0e0
+    style API fill:#5b21b6,stroke:#a78bfa,stroke-width:3px,color:#ffffff
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 5: Data Flow                                         -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section section-flow" id="flow">
+    <div class="section-inner">
+      <div class="section-head reveal">
+        <div class="section-label">04 &mdash; Data Flow</div>
+        <h2 class="section-title">Request to Response</h2>
+        <p class="section-subtitle">The complete journey of an MCP tool call, from input validation through GraphQL execution to the final cached response.</p>
+      </div>
+
+      <div class="pipeline">
+        <!-- Request phase -->
+        <div class="pipeline-step pipe-req reveal">
+          <div class="pipeline-num">1</div>
+          <div class="pipeline-content">
+            <div class="pipeline-title">MCP Tool Call</div>
+            <div class="pipeline-desc">Client invokes a tool, e.g. <code>list_products({ limit: 10 })</code></div>
+          </div>
+        </div>
+        <div class="pipeline-step pipe-req reveal reveal-delay-1">
+          <div class="pipeline-num">2</div>
+          <div class="pipeline-content">
+            <div class="pipeline-title">Zod Input Validation</div>
+            <div class="pipeline-desc">Parameters validated against the tool's Zod v4 schema. Invalid input rejected immediately.</div>
+          </div>
+        </div>
+        <div class="pipeline-step pipe-req reveal reveal-delay-1">
+          <div class="pipeline-num">3</div>
+          <div class="pipeline-content">
+            <div class="pipeline-title">Config / Tier Check</div>
+            <div class="pipeline-desc">Verify the tool is enabled in the current configuration and the tier allows execution.</div>
+          </div>
+        </div>
+        <div class="pipeline-step pipe-req reveal reveal-delay-2">
+          <div class="pipeline-num">4</div>
+          <div class="pipeline-content">
+            <div class="pipeline-title">Auth Token Injection</div>
+            <div class="pipeline-desc">Auth Manager injects <code>X-Shopify-Access-Token</code> header from the configured auth method.</div>
+          </div>
+        </div>
+
+        <!-- Execution phase -->
+        <div class="pipeline-step pipe-exec reveal reveal-delay-2">
+          <div class="pipeline-num">5</div>
+          <div class="pipeline-content">
+            <div class="pipeline-title">Rate Limit Gate</div>
+            <div class="pipeline-desc">Token bucket algorithm ensures Shopify API rate limits are respected (burst with backpressure).</div>
+          </div>
+        </div>
+        <div class="pipeline-step pipe-exec reveal reveal-delay-2">
+          <div class="pipeline-num">6</div>
+          <div class="pipeline-content">
+            <div class="pipeline-title">Cache Lookup</div>
+            <div class="pipeline-desc">Check TTL-based cache for a matching query. On hit, skip GraphQL execution and return cached data.</div>
+          </div>
+        </div>
+        <div class="pipeline-step pipe-exec reveal reveal-delay-3">
+          <div class="pipeline-num">7</div>
+          <div class="pipeline-content">
+            <div class="pipeline-title">GraphQL Execute</div>
+            <div class="pipeline-desc">POST the query to Shopify Admin GraphQL API. Retry with exponential backoff on transient failures.</div>
+          </div>
+        </div>
+
+        <!-- Response phase -->
+        <div class="pipeline-step pipe-resp reveal reveal-delay-3">
+          <div class="pipeline-num">8</div>
+          <div class="pipeline-content">
+            <div class="pipeline-title">Response Mapping</div>
+            <div class="pipeline-desc">Extract, normalize, and transform the raw GraphQL response into the tool's output schema.</div>
+          </div>
+        </div>
+        <div class="pipeline-step pipe-resp reveal reveal-delay-3">
+          <div class="pipeline-num">9</div>
+          <div class="pipeline-content">
+            <div class="pipeline-title">Audit Log</div>
+            <div class="pipeline-desc">Record tool name, duration, status, parameters, and cost to the audit trail.</div>
+          </div>
+        </div>
+        <div class="pipeline-step pipe-resp reveal reveal-delay-4">
+          <div class="pipeline-num">10</div>
+          <div class="pipeline-content">
+            <div class="pipeline-title">Cache Store</div>
+            <div class="pipeline-desc">Store the successful response in the TTL cache for subsequent identical queries.</div>
+          </div>
+        </div>
+        <div class="pipeline-step pipe-resp reveal reveal-delay-4">
+          <div class="pipeline-num">11</div>
+          <div class="pipeline-content">
+            <div class="pipeline-title">MCP Response Returned</div>
+            <div class="pipeline-desc">Return <code>{ content: [{ type: "text", text: "..." }] }</code> to the MCP client.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="diagram-wrap reveal reveal-delay-4" style="margin-top:3rem;">
+        <div class="diagram-controls">
+          <button class="diagram-btn" onclick="zoomDiagram('flow-diagram', 1)">+</button>
+          <button class="diagram-btn" onclick="zoomDiagram('flow-diagram', -1)">&minus;</button>
+          <button class="diagram-btn" onclick="resetDiagram('flow-diagram')" style="font-size:0.7rem;">R</button>
+        </div>
+        <div class="diagram-viewport" id="flow-diagram-vp">
+          <pre class="mermaid" id="flow-diagram">
+flowchart LR
+    USER["<b>AI Agent / Client</b>"]
+
+    subgraph REQ["Request Pipeline"]
+        direction TB
+        R1["1. MCP Tool Call"]
+        R2["2. Zod Validation"]
+        R3["3. Config/Tier Check"]
+        R4["4. Auth Injection"]
+        R5["5. Rate Limit"]
+        R6["6. Cache Lookup"]
+        R7["7. GraphQL Execute"]
+    end
+
+    API["<b>Shopify API</b>"]
+
+    subgraph RESP["Response Pipeline"]
+        direction TB
+        S1["8. Response Mapping"]
+        S2["9. Audit Log"]
+        S3["10. Cache Store"]
+        S4["11. MCP Response"]
+    end
+
+    USER --> R1 --> R2 --> R3 --> R4 --> R5 --> R6 --> R7 --> API
+    API --> S1 --> S2 --> S3 --> S4 --> USER
+
+    style REQ fill:#162d50,stroke:#3b82f6,stroke-width:2px,color:#e0e0e0
+    style RESP fill:#0f3425,stroke:#10b981,stroke-width:2px,color:#e0e0e0
+    style API fill:#5b21b6,stroke:#a78bfa,stroke-width:3px,color:#ffffff
+    style USER fill:#2d1b69,stroke:#8b5cf6,stroke-width:2px,color:#e0e0e0
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 6: 3-Tier System                                     -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section class="section section-tiers" id="tiers">
+    <div class="section-inner">
+      <div class="section-head reveal">
+        <div class="section-label">05 &mdash; Tier System</div>
+        <h2 class="section-title">Config-Driven Tool Tiers</h2>
+        <p class="section-subtitle">Three-tier architecture for safe, flexible tool management. Enable what you need, disable what you don't, extend with custom YAML.</p>
+      </div>
+
+      <div class="tier-lanes">
+        <!-- Tier 1 -->
+        <div class="tier-lane tier-1 reveal reveal-delay-1">
+          <div class="tier-header">
+            <span class="tier-badge">Tier 1</span>
+            <span class="tier-title">Enabled by Default</span>
+          </div>
+          <div class="tier-desc">49 built-in tools ship ready to use. Safe, read-first operations with well-defined scopes. No config needed to get started.</div>
+          <div class="tier-items">
+            <span class="tier-item">list_products</span>
+            <span class="tier-item">get_product</span>
+            <span class="tier-item">search_products</span>
+            <span class="tier-item">list_orders</span>
+            <span class="tier-item">get_order</span>
+            <span class="tier-item">search_orders</span>
+            <span class="tier-item">list_customers</span>
+            <span class="tier-item">get_customer</span>
+            <span class="tier-item">inventory_levels</span>
+            <span class="tier-item">sales_summary</span>
+            <span class="tier-item">create_product</span>
+            <span class="tier-item">update_product</span>
+            <span class="tier-item">+ 37 more</span>
+          </div>
+        </div>
+
+        <!-- Tier 2 -->
+        <div class="tier-lane tier-2 reveal reveal-delay-2">
+          <div class="tier-header">
+            <span class="tier-badge">Tier 2</span>
+            <span class="tier-title">Disabled by Default &mdash; Opt-in via Config</span>
+          </div>
+          <div class="tier-desc">Sensitive or destructive operations that require explicit opt-in. Safety boundary: no billing, payments, payouts, financial reports, or admin config changes unless deliberately enabled.</div>
+          <div class="tier-items">
+            <span class="tier-item">billing</span>
+            <span class="tier-item">payments</span>
+            <span class="tier-item">themes</span>
+            <span class="tier-item">discounts</span>
+            <span class="tier-item">marketing</span>
+            <span class="tier-item">metafields</span>
+            <span class="tier-item">store config</span>
+            <span class="tier-item">payouts</span>
+            <span class="tier-item">... extensible</span>
+          </div>
+        </div>
+
+        <!-- Tier 3 -->
+        <div class="tier-lane tier-3 reveal reveal-delay-3">
+          <div class="tier-header">
+            <span class="tier-badge">Tier 3</span>
+            <span class="tier-title">Custom YAML Tools &mdash; Enabled by Default</span>
+          </div>
+          <div class="tier-desc">Define your own tools via <code>*.tool.yaml</code> files. Auto-discovered, schema-validated, and registered alongside built-in tools. Ship domain-specific tooling without writing TypeScript.</div>
+          <div class="tier-items">
+            <span class="tier-item">*.tool.yaml</span>
+            <span class="tier-item">auto-discovered</span>
+            <span class="tier-item">Zod validated</span>
+            <span class="tier-item">custom GraphQL</span>
+            <span class="tier-item">no code required</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="diagram-wrap reveal reveal-delay-4">
+        <div class="diagram-controls">
+          <button class="diagram-btn" onclick="zoomDiagram('tier-diagram', 1)">+</button>
+          <button class="diagram-btn" onclick="zoomDiagram('tier-diagram', -1)">&minus;</button>
+          <button class="diagram-btn" onclick="resetDiagram('tier-diagram')" style="font-size:0.7rem;">R</button>
+        </div>
+        <div class="diagram-viewport" id="tier-diagram-vp">
+          <pre class="mermaid" id="tier-diagram">
+flowchart LR
+    subgraph T1["Tier 1 &mdash; Enabled by Default"]
+        direction TB
+        T1A["<b>49 Built-in Tools</b>"]
+        T1B["Products &middot; Orders &middot; Customers<br/>Inventory &middot; Analytics"]
+    end
+
+    subgraph T2["Tier 2 &mdash; Disabled by Default"]
+        direction TB
+        T2A["<b>Opt-in via Config</b>"]
+        T2B["Billing &middot; Payments &middot; Themes<br/>Discounts &middot; Store Config"]
+    end
+
+    subgraph T3["Tier 3 &mdash; Custom YAML"]
+        direction TB
+        T3A["<b>*.tool.yaml</b>"]
+        T3B["Auto-discovered<br/>Zod validated &middot; Custom GraphQL"]
+    end
+
+    CF["<b>Config Filter</b><br/><i>enable &middot; disable &middot; tiers</i>"]
+    REG["<b>Tool Registry</b>"]
+
+    T1 --> CF
+    T2 -.->|opt-in| CF
+    T3 --> CF
+    CF --> REG
+
+    style T1 fill:#0f3425,stroke:#10b981,stroke-width:2px,color:#e0e0e0
+    style T2 fill:#3a1515,stroke:#ef4444,stroke-width:2px,color:#e0e0e0
+    style T3 fill:#162d50,stroke:#3b82f6,stroke-width:2px,color:#e0e0e0
+    style CF fill:#1a1a2e,stroke:#a78bfa,stroke-width:2px,color:#e0e0e0
+    style REG fill:#1a1a2e,stroke:#6c63ff,stroke-width:2px,color:#e0e0e0
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ── -->
+  <footer class="footer">
+    <div class="footer-brand">cob-shopify-mcp</div>
+    <div class="footer-desc">The definitive open-source MCP server for Shopify</div>
+    <div class="footer-links">
+      <a href="https://github.com/svinpeace/cob-shopify-mcp" class="footer-link" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/cob-shopify-mcp" class="footer-link" target="_blank" rel="noopener">npm</a>
+    </div>
+  </footer>
+
+  <!-- ── Scripts ── -->
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
 
     mermaid.initialize({
-      startOnLoad: false,
+      startOnLoad: true,
       theme: 'dark',
       themeVariables: {
         primaryColor: '#1a1a2e',
@@ -250,297 +1413,173 @@
         clusterBorder: '#6c63ff',
         edgeLabelBackground: '#1a1a2e',
         nodeTextColor: '#e0e0e0',
-        fontSize: '14px',
+        fontSize: '13px',
       },
       flowchart: {
         curve: 'basis',
-        padding: 20,
+        padding: 18,
         htmlLabels: true,
         useMaxWidth: true,
       },
     });
 
-    const diagrams = {
-      full: `flowchart TB
-    subgraph ENTRY["🚀 Entry Points"]
-        direction LR
-        CLI["🖥️ <b>CLI</b><br/><i>connect · serve · tools</i>"]
-        STDIO["📡 <b>MCP Server</b><br/><i>stdio transport</i>"]
-        HTTP["🌐 <b>HTTP Server</b><br/><i>Streamable HTTP</i>"]
-    end
+    // ── Scroll-triggered reveal ──
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
 
-    subgraph CORE["⚙️ Core Engine — API-Agnostic"]
-        direction TB
-        subgraph REG["📋 Registry & Discovery"]
-            direction LR
-            AD["🔍 <b>Auto-Discover</b><br/><i>*.tool.ts · *.tool.yaml</i>"]
-            REGISTRY["📦 <b>Tool Registry</b><br/><i>register · list · filter</i>"]
-            CF["⚡ <b>Config Filter</b><br/><i>enable · disable · tiers</i>"]
-        end
-        subgraph ENG["🔧 MCP Engines"]
-            direction LR
-            TE["🛠️ <b>Tool Engine</b><br/><i>schema → execute → map</i>"]
-            RE["📄 <b>Resource Engine</b><br/><i>read-only data</i>"]
-            PE["💬 <b>Prompt Engine</b><br/><i>templates & workflows</i>"]
-        end
-        subgraph INF["🏗️ Infrastructure"]
-            direction LR
-            AUTH["🔐 <b>Auth Manager</b><br/><i>token · OAuth</i>"]
-            OBS["📊 <b>Observability</b><br/><i>logs · metrics · audit</i>"]
-            STR["💾 <b>Storage</b><br/><i>JSON · SQLite+enc</i>"]
-        end
-        DT["✨ <b>defineTool()</b> Helper"]
-    end
+    document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
 
-    subgraph SHOP["🛍️ Shopify Shell"]
-        direction TB
-        subgraph GQL["🔗 Shopify GraphQL Client"]
-            direction LR
-            CL["<b>@shopify/<br/>admin-api-client</b>"]
-            RL["⏱️ <b>Rate Limiter</b>"]
-            CA["💨 <b>Cache Layer</b>"]
-        end
-        subgraph TOOLS["🧰 Tool Definitions — Co-located"]
-            direction LR
-            P["📦 <b>Products</b><br/>15 tools"]
-            O["🧾 <b>Orders</b><br/>12 tools"]
-            C["👥 <b>Customers</b><br/>9 tools"]
-            I["📊 <b>Inventory</b><br/>7 tools"]
-            A["📈 <b>Analytics</b><br/>6 tools"]
-        end
-        T2["🔒 <b>Tier 2 — Disabled by Default</b><br/><i>Billing · Payments · Themes · Store Config · more...</i>"]
-        subgraph MCP["🎯 MCP Primitives"]
-            direction LR
-            RES["📑 <b>Resources</b><br/><i>shop info · locations</i>"]
-            PRM["💡 <b>Prompts</b><br/><i>store health · reports</i>"]
-        end
-    end
+    // ── Active nav tracking ──
+    const sections = document.querySelectorAll('.section');
+    const navLinks = document.querySelectorAll('.nav-link');
 
-    API["🏪 <b>Shopify Admin GraphQL API</b><br/><i>v2026-01</i>"]
+    const navObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          navLinks.forEach(link => {
+            link.classList.toggle('active', link.dataset.section === id);
+          });
+        }
+      });
+    }, { threshold: 0.3, rootMargin: '-56px 0px 0px 0px' });
 
-    CLI --> CORE
-    STDIO --> CORE
-    HTTP --> CORE
-    AD --> REGISTRY --> CF
-    CF --> TE & RE & PE
-    DT -.-> REGISTRY
-    TE --> GQL
-    RE --> GQL
-    PE --> GQL
-    AUTH --> GQL
-    OBS -.-> TE
-    STR -.-> AUTH
-    CL --> RL --> CA
-    TOOLS --> DT
-    T2 -.-> DT
-    RES --> RE
-    PRM --> PE
-    CA --> API
+    sections.forEach(s => navObserver.observe(s));
 
-    style ENTRY fill:#2d1b69,stroke:#8b5cf6,stroke-width:2px,color:#e0e0e0
-    style CORE fill:#0f2942,stroke:#3b82f6,stroke-width:2px,color:#e0e0e0
-    style SHOP fill:#0f3425,stroke:#10b981,stroke-width:2px,color:#e0e0e0
-    style REG fill:#162d50,stroke:#3b82f6,stroke-width:1px,color:#e0e0e0
-    style ENG fill:#162d50,stroke:#3b82f6,stroke-width:1px,color:#e0e0e0
-    style INF fill:#162d50,stroke:#3b82f6,stroke-width:1px,color:#e0e0e0
-    style GQL fill:#1a4731,stroke:#10b981,stroke-width:1px,color:#e0e0e0
-    style TOOLS fill:#1a4731,stroke:#10b981,stroke-width:1px,color:#e0e0e0
-    style MCP fill:#1a4731,stroke:#10b981,stroke-width:1px,color:#e0e0e0
-    style T2 fill:#3a1515,stroke:#ef4444,stroke-width:2px,color:#e0e0e0
-    style API fill:#5b21b6,stroke:#a78bfa,stroke-width:3px,color:#ffffff
-    style DT fill:#7c2d12,stroke:#f97316,stroke-width:2px,color:#e0e0e0`,
+    // ── Animated stat counters ──
+    const counterObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const el = entry.target;
+          const target = parseInt(el.dataset.target, 10);
+          if (el.dataset.counted) return;
+          el.dataset.counted = '1';
+          animateCounter(el, target);
+        }
+      });
+    }, { threshold: 0.5 });
 
-      core: `flowchart TB
-    subgraph CORE["⚙️ Core Engine — API-Agnostic"]
-        direction TB
-        subgraph DISC["📋 Discovery Pipeline"]
-            direction LR
-            SCAN["🔍 <b>File Scanner</b><br/><i>Glob *.tool.ts *.tool.yaml</i>"]
-            PARSE["📝 <b>Definition Parser</b><br/><i>YAML / TypeScript</i>"]
-            VALID["✅ <b>Schema Validator</b><br/><i>Zod v4</i>"]
-        end
-        subgraph REG["📦 Registry"]
-            direction LR
-            STORE_REG["<b>Tool Store</b><br/><i>Map&lt;name, definition&gt;</i>"]
-            CFG["⚡ <b>Config Filter</b><br/><i>tiers · enable · disable</i>"]
-            PLUG["🔌 <b>Plugin Loader</b><br/><i>custom tool paths</i>"]
-        end
-        subgraph ENG["🔧 Execution"]
-            direction LR
-            TE["🛠️ <b>Tool Engine</b><br/><i>validate → execute → map</i>"]
-            RE["📄 <b>Resource Engine</b>"]
-            PE["💬 <b>Prompt Engine</b>"]
-        end
-        subgraph TRANS["📡 Transport"]
-            direction LR
-            STD["<b>stdio</b><br/><i>StdioServerTransport</i>"]
-            HTT["<b>Streamable HTTP</b><br/><i>port configurable</i>"]
-        end
-        subgraph INFRA["🏗️ Infrastructure"]
-            direction LR
-            AUTH["🔐 <b>Auth Interface</b><br/><i>getToken() · refresh()</i>"]
-            LOG["📊 <b>Logger</b><br/><i>structured JSON</i>"]
-            AUDIT["📋 <b>Audit Trail</b><br/><i>tool · timestamp · params</i>"]
-            METRICS["📈 <b>Metrics</b><br/><i>latency · errors · usage</i>"]
-        end
-        DT["✨ <b>defineTool() · defineResource() · definePrompt()</b>"]
-    end
+    document.querySelectorAll('.stat-number[data-target]').forEach(el => counterObserver.observe(el));
 
-    SCAN --> PARSE --> VALID --> STORE_REG
-    PLUG --> STORE_REG
-    STORE_REG --> CFG --> TE & RE & PE
-    TE --> STD & HTT
-    RE --> STD & HTT
-    PE --> STD & HTT
-    TE -.-> LOG & AUDIT & METRICS
-    DT -.-> VALID
-
-    style CORE fill:#0f2942,stroke:#3b82f6,stroke-width:2px,color:#e0e0e0
-    style DISC fill:#162d50,stroke:#3b82f6,stroke-width:1px,color:#e0e0e0
-    style REG fill:#162d50,stroke:#3b82f6,stroke-width:1px,color:#e0e0e0
-    style ENG fill:#162d50,stroke:#3b82f6,stroke-width:1px,color:#e0e0e0
-    style TRANS fill:#162d50,stroke:#3b82f6,stroke-width:1px,color:#e0e0e0
-    style INFRA fill:#162d50,stroke:#3b82f6,stroke-width:1px,color:#e0e0e0
-    style DT fill:#7c2d12,stroke:#f97316,stroke-width:2px,color:#e0e0e0`,
-
-      shopify: `flowchart TB
-    subgraph SHOP["🛍️ Shopify Shell"]
-        direction TB
-        subgraph CLIENT["🔗 GraphQL Client"]
-            direction LR
-            API_CL["<b>@shopify/admin-api-client</b><br/><i>createAdminApiClient()</i>"]
-            OAUTH["<b>@shopify/shopify-api</b><br/><i>OAuth flow</i>"]
-        end
-        subgraph MIDDLEWARE["⚡ Middleware"]
-            direction LR
-            RL["⏱️ <b>Rate Limiter</b><br/><i>token bucket · 4 req/s</i>"]
-            CACHE["💨 <b>Cache</b><br/><i>TTL-based · per-query</i>"]
-            RETRY["🔄 <b>Retry</b><br/><i>exponential backoff</i>"]
-        end
-        subgraph T1["🧰 Tier 1 — Enabled by Default"]
-            direction LR
-            P["📦 <b>Products</b><br/>list · get · search · create<br/>update · variants · collections<br/>tags · status<br/><i>15 tools</i>"]
-            O["🧾 <b>Orders</b><br/>list · search · get · timeline<br/>fulfillment · draft · notes<br/>tags · mark paid<br/><i>12 tools</i>"]
-            C["👥 <b>Customers</b><br/>list · search · get · orders<br/>LTV · create · update · tags<br/><i>9 tools</i>"]
-            I["📊 <b>Inventory</b><br/>item · SKU · levels · location<br/>low stock · adjust · set<br/><i>7 tools</i>"]
-            A["📈 <b>Analytics</b><br/>sales · top products · orders<br/>refunds · repeat rate · risk<br/><i>6 tools</i>"]
-        end
-        subgraph T2["🔒 Tier 2 — Disabled by Default"]
-            direction LR
-            BILL["💳 Billing"]
-            PAY["💰 Payments"]
-            THEME["🎨 Themes"]
-            DISC["🏷️ Discounts"]
-            MKT["📣 Marketing"]
-            META["📋 Metafields"]
-            CONF["⚙️ Store Config"]
-            MORE["... extensible"]
-        end
-        subgraph PRIM["🎯 MCP Primitives"]
-            direction LR
-            RES["📑 <b>Resources</b><br/>shop://info · locations<br/>policies · currencies"]
-            PRM["💡 <b>Prompts</b><br/>store health · sales report<br/>inventory risk · support"]
-        end
-    end
-
-    SHOPIFY_API["🏪 <b>Shopify Admin GraphQL API</b> · v2026-01"]
-
-    API_CL --> RL --> CACHE --> RETRY
-    OAUTH -.-> API_CL
-    T1 --> CLIENT
-    T2 -.-> CLIENT
-    RETRY --> SHOPIFY_API
-
-    style SHOP fill:#0f3425,stroke:#10b981,stroke-width:2px,color:#e0e0e0
-    style CLIENT fill:#1a4731,stroke:#10b981,stroke-width:1px,color:#e0e0e0
-    style MIDDLEWARE fill:#1a4731,stroke:#10b981,stroke-width:1px,color:#e0e0e0
-    style T1 fill:#1a4731,stroke:#10b981,stroke-width:1px,color:#e0e0e0
-    style T2 fill:#3a1515,stroke:#ef4444,stroke-width:2px,color:#e0e0e0
-    style PRIM fill:#1a4731,stroke:#10b981,stroke-width:1px,color:#e0e0e0
-    style SHOPIFY_API fill:#5b21b6,stroke:#a78bfa,stroke-width:3px,color:#ffffff`,
-
-      data: `flowchart LR
-    USER["👤 <b>User / AI Agent</b>"]
-
-    subgraph REQUEST["→ Request Flow"]
-        direction TB
-        R1["1️⃣ MCP Tool Call<br/><i>e.g. list_products(limit: 5)</i>"]
-        R2["2️⃣ Zod Validation<br/><i>validate input schema</i>"]
-        R3["3️⃣ Config Check<br/><i>tool enabled? tier allowed?</i>"]
-        R4["4️⃣ Auth Injection<br/><i>add X-Shopify-Access-Token</i>"]
-        R5["5️⃣ Rate Limit Gate<br/><i>token bucket check</i>"]
-        R6["6️⃣ Cache Lookup<br/><i>hit? return cached</i>"]
-        R7["7️⃣ GraphQL Execute<br/><i>POST to Shopify API</i>"]
-    end
-
-    API["🏪 Shopify API"]
-
-    subgraph RESPONSE["← Response Flow"]
-        direction TB
-        S1["8️⃣ Response Received<br/><i>raw GraphQL response</i>"]
-        S2["9️⃣ Response Mapping<br/><i>extract & normalize</i>"]
-        S3["🔟 Audit Log<br/><i>tool · duration · status</i>"]
-        S4["1️⃣1️⃣ Cache Store<br/><i>TTL-based caching</i>"]
-        S5["1️⃣2️⃣ MCP Response<br/><i>{ content: [{ type: text }] }</i>"]
-    end
-
-    USER --> R1 --> R2 --> R3 --> R4 --> R5 --> R6 --> R7 --> API
-    API --> S1 --> S2 --> S3 --> S4 --> S5 --> USER
-
-    style REQUEST fill:#162d50,stroke:#3b82f6,stroke-width:2px,color:#e0e0e0
-    style RESPONSE fill:#0f3425,stroke:#10b981,stroke-width:2px,color:#e0e0e0
-    style API fill:#5b21b6,stroke:#a78bfa,stroke-width:3px,color:#ffffff
-    style USER fill:#2d1b69,stroke:#8b5cf6,stroke-width:2px,color:#e0e0e0`,
-    };
-
-    async function renderDiagram(code) {
-      const el = document.getElementById('diagram');
-      el.removeAttribute('data-processed');
-      el.textContent = code;
-      await mermaid.run({ nodes: [el] });
+    function animateCounter(el, target) {
+      const duration = 1400;
+      const start = performance.now();
+      function tick(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        // ease-out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(eased * target);
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
     }
 
-    // Initial render
-    await renderDiagram(diagrams.full);
+    // ── Zoom & pan for diagrams ──
+    const diagramStates = {};
 
-    // View switching
-    window.showView = async (view) => {
-      document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
-      document.getElementById('btn-' + view).classList.add('active');
-      await renderDiagram(diagrams[view]);
-    };
-
-    // Tooltip handling
-    const tooltip = document.getElementById('tooltip');
-    const tooltipData = {
-      'Auto-Discover': 'Scans tool directories for *.tool.ts and *.tool.yaml files. Supports both TypeScript and YAML definitions.',
-      'Tool Registry': 'Central store of all tool definitions. Supports register, list, filter, and plugin loading.',
-      'Config Filter': 'Applies tier-based defaults, user enable/disable rules, and read-only mode filtering.',
-      'Tool Engine': 'Generates Zod schemas from definitions, executes GraphQL via Shopify client, maps responses.',
-      'Resource Engine': 'Serves read-only MCP resources like shop info, locations, policies.',
-      'Prompt Engine': 'Manages prompt templates for guided AI workflows.',
-      'defineTool()': 'Helper function for declaring tools with type safety. Auto-registers with the registry.',
-      'Rate Limiter': 'Token bucket algorithm respecting Shopify API limits (default 4 req/s with burst of 10).',
-      'Cache Layer': 'TTL-based query cache. Reduces API calls for repeated queries.',
-      'Auth Manager': 'Supports static access tokens and OAuth client credentials with automatic refresh.',
-      'Storage': 'Pluggable backends: JSON files (default, zero deps) or SQLite with token encryption.',
-      'Observability': 'Structured JSON logging, metrics collection, and audit trail for every tool invocation.',
-    };
-
-    document.addEventListener('mousemove', (e) => {
-      const node = e.target.closest('.node');
-      if (node) {
-        const text = node.textContent || '';
-        const match = Object.keys(tooltipData).find(key => text.includes(key));
-        if (match) {
-          tooltip.innerHTML = `<strong>${match}</strong><br/>${tooltipData[match]}`;
-          tooltip.classList.add('visible');
-          tooltip.style.left = (e.clientX + 15) + 'px';
-          tooltip.style.top = (e.clientY - 10) + 'px';
-          return;
-        }
+    function getDiagramState(id) {
+      if (!diagramStates[id]) {
+        diagramStates[id] = { scale: 1, translateX: 0, translateY: 0, isDragging: false, lastX: 0, lastY: 0 };
       }
-      tooltip.classList.remove('visible');
+      return diagramStates[id];
+    }
+
+    function applyTransform(id) {
+      const state = getDiagramState(id);
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.transform = `translate(${state.translateX}px, ${state.translateY}px) scale(${state.scale})`;
+    }
+
+    window.zoomDiagram = function(id, dir) {
+      const state = getDiagramState(id);
+      const newScale = state.scale + dir * 0.2;
+      state.scale = Math.max(0.3, Math.min(3, newScale));
+      applyTransform(id);
+    };
+
+    window.resetDiagram = function(id) {
+      const state = getDiagramState(id);
+      state.scale = 1;
+      state.translateX = 0;
+      state.translateY = 0;
+      applyTransform(id);
+    };
+
+    // Wheel zoom on diagram viewports
+    document.querySelectorAll('.diagram-viewport').forEach(vp => {
+      const mermaidEl = vp.querySelector('.mermaid');
+      if (!mermaidEl) return;
+      const id = mermaidEl.id;
+
+      vp.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const dir = e.deltaY < 0 ? 1 : -1;
+        const state = getDiagramState(id);
+        state.scale = Math.max(0.3, Math.min(3, state.scale + dir * 0.1));
+        applyTransform(id);
+      }, { passive: false });
+
+      // Pan with mouse drag
+      vp.addEventListener('mousedown', (e) => {
+        const state = getDiagramState(id);
+        state.isDragging = true;
+        state.lastX = e.clientX;
+        state.lastY = e.clientY;
+        vp.style.cursor = 'grabbing';
+      });
+
+      vp.addEventListener('mousemove', (e) => {
+        const state = getDiagramState(id);
+        if (!state.isDragging) return;
+        const dx = e.clientX - state.lastX;
+        const dy = e.clientY - state.lastY;
+        state.translateX += dx;
+        state.translateY += dy;
+        state.lastX = e.clientX;
+        state.lastY = e.clientY;
+        applyTransform(id);
+      });
+
+      const endDrag = () => {
+        const state = getDiagramState(id);
+        state.isDragging = false;
+        vp.style.cursor = 'grab';
+      };
+      vp.addEventListener('mouseup', endDrag);
+      vp.addEventListener('mouseleave', endDrag);
+
+      // Touch support
+      vp.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          const state = getDiagramState(id);
+          state.isDragging = true;
+          state.lastX = e.touches[0].clientX;
+          state.lastY = e.touches[0].clientY;
+        }
+      }, { passive: true });
+
+      vp.addEventListener('touchmove', (e) => {
+        const state = getDiagramState(id);
+        if (!state.isDragging || e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - state.lastX;
+        const dy = e.touches[0].clientY - state.lastY;
+        state.translateX += dx;
+        state.translateY += dy;
+        state.lastX = e.touches[0].clientX;
+        state.lastY = e.touches[0].clientY;
+        applyTransform(id);
+      }, { passive: true });
+
+      vp.addEventListener('touchend', () => {
+        getDiagramState(id).isDragging = false;
+      }, { passive: true });
     });
   </script>
 </body>
