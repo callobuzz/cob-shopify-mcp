@@ -33,6 +33,22 @@ export function filterFields(data: unknown, fields: string[]): unknown {
 		return arr.map((item) => pickFields(item, fields));
 	}
 
+	// Check if object is a single-key wrapper (e.g. {product: {id, title, ...}})
+	// If the requested fields don't exist at this level but exist inside
+	// the single nested object, unwrap and filter there.
+	const keys = Object.keys(obj);
+	if (keys.length === 1) {
+		const inner = obj[keys[0]];
+		if (inner !== null && typeof inner === "object" && !Array.isArray(inner)) {
+			const innerObj = inner as Record<string, unknown>;
+			const hasFieldsInner = fields.some((f) => f in innerObj);
+			const hasFieldsOuter = fields.some((f) => f in obj);
+			if (hasFieldsInner && !hasFieldsOuter) {
+				return pickFields(innerObj, fields);
+			}
+		}
+	}
+
 	// Plain object
 	return pickFields(obj, fields);
 }
