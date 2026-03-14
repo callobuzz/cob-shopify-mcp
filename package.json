@@ -1,7 +1,7 @@
 {
 	"name": "cob-shopify-mcp",
 	"version": "0.3.0",
-	"description": "Production-grade MCP server for Shopify Admin GraphQL API",
+	"description": "Production-grade MCP server and CLI tool for Shopify Admin GraphQL API",
 	"type": "module",
 	"engines": {
 		"node": ">=22"
