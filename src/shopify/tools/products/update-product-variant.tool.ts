@@ -30,7 +30,7 @@ export const updateProductVariant = defineTool({
 			id: input.id,
 		};
 		if (input.price !== undefined) variantInput.price = input.price;
-		if (input.sku !== undefined) variantInput.sku = input.sku;
+		if (input.sku !== undefined) variantInput.inventoryItem = { sku: input.sku };
 		if (input.barcode !== undefined) variantInput.barcode = input.barcode;
 
 		const result = await ctx.shopify.query(mutation, {

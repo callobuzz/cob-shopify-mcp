@@ -50,7 +50,7 @@ describe("update_product_variant", () => {
 				{
 					id: "gid://shopify/ProductVariant/1",
 					price: "34.99",
-					sku: "H-SM-V2",
+					inventoryItem: { sku: "H-SM-V2" },
 				},
 			],
 		});
