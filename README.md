@@ -612,7 +612,7 @@ cob-shopify tools info list_products
 | `update_product_status` | Change product status | `write_products` |
 | `manage_product_tags` | Add/remove product tags | `write_products` |
 
-### Orders (12 tools)
+### Orders (17 tools)
 | Tool | Description | Scope |
 |------|-------------|-------|
 | `list_orders` | List orders with filters | `read_orders` |
@@ -627,6 +627,11 @@ cob-shopify tools info list_products
 | `add_order_tag` | Add tags to order | `write_orders` |
 | `update_order_tags` | Update order tags | `write_orders` |
 | `mark_order_paid` | Mark order as paid | `write_orders` |
+| `cancel_order` | Cancel an order (async) | `write_orders` |
+| `complete_draft_order` | Complete draft to real order | `write_draft_orders` |
+| `get_fulfillment_orders` | Get fulfillment order IDs | `read_assigned_fulfillment_orders` |
+| `create_fulfillment` | Create fulfillment with tracking | `write_assigned_fulfillment_orders` |
+| `update_fulfillment_tracking` | Update tracking info | `write_assigned_fulfillment_orders` |
 
 ### Customers (9 tools)
 | Tool | Description | Scope |
@@ -652,15 +657,28 @@ cob-shopify tools info list_products
 | `adjust_inventory` | Adjust inventory quantity | `write_inventory` |
 | `set_inventory_level` | Set inventory level | `write_inventory` |
 
-### Analytics (6 tools)
+### Analytics (16 tools)
+
+*All analytics tools use ShopifyQL — single API call per query, no cursor pagination.*
+
 | Tool | Description | Scope |
 |------|-------------|-------|
-| `sales_summary` | Sales totals for period | `read_orders` |
-| `top_products` | Top products by revenue | `read_orders`, `read_products` |
-| `orders_by_date_range` | Orders grouped by period | `read_orders` |
-| `refund_rate_summary` | Refund rate analysis | `read_orders` |
-| `repeat_customer_rate` | Repeat customer analysis | `read_orders`, `read_customers` |
-| `inventory_risk_report` | Inventory risk assessment | `read_inventory`, `read_products` |
+| `sales_summary` | Sales totals for date range | `read_reports` |
+| `top_products` | Best sellers by revenue or orders | `read_reports` |
+| `orders_by_date_range` | Orders grouped by day/week/month | `read_reports` |
+| `refund_rate_summary` | Refund rate and amounts | `read_reports` |
+| `repeat_customer_rate` | Repeat purchase analysis | `read_reports` |
+| `sales_by_channel` | Revenue by sales channel | `read_reports` |
+| `sales_by_geography` | Sales by country/region | `read_reports` |
+| `sales_comparison` | Period-over-period comparison | `read_reports` |
+| `discount_performance` | Discount impact analysis | `read_reports` |
+| `product_vendor_performance` | Revenue by vendor | `read_reports` |
+| `customer_cohort_analysis` | Cohort analysis by period | `read_reports` |
+| `customer_lifetime_value` | Top customers by CLV | `read_reports` |
+| `conversion_funnel` | Sessions to orders funnel | `read_reports` |
+| `traffic_analytics` | Session traffic over time | `read_reports` |
+| `inventory_risk_report` | Over/understock risk analysis | `read_inventory`, `read_products` |
+| `shopifyql_query` | Raw ShopifyQL passthrough | `read_reports` |
 
 ## Other Editors (Cursor / Windsurf)
 
