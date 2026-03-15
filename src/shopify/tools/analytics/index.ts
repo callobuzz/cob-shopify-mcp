@@ -1,4 +1,5 @@
 export { default as customerCohortAnalysis } from "./customer-cohort-analysis.tool.js";
+export { default as customerLifetimeValue } from "./customer-lifetime-value.tool.js";
 export { default as discountPerformance } from "./discount-performance.tool.js";
 export { default as inventoryRiskReport } from "./inventory-risk-report.tool.js";
 export { default as ordersByDateRange } from "./orders-by-date-range.tool.js";
