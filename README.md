@@ -1,10 +1,17 @@
 # cob-shopify-mcp
 
-Production-grade MCP server **and** CLI tool for Shopify. Use it as an MCP server for AI agents (Claude, Cursor, Windsurf) or as a standalone CLI to manage Shopify stores directly from your terminal — no MCP required.
+[![npm version](https://img.shields.io/npm/v/cob-shopify-mcp?color=blue)](https://www.npmjs.com/package/cob-shopify-mcp)
+[![build](https://img.shields.io/github/actions/workflow/status/svinpeace/cob-shopify-mcp/ci.yml?branch=main)](https://github.com/svinpeace/cob-shopify-mcp/actions)
+[![license](https://img.shields.io/github/license/svinpeace/cob-shopify-mcp)](./LICENSE)
+[![node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
+[![tools](https://img.shields.io/badge/tools-64-orange)](https://github.com/svinpeace/cob-shopify-mcp#tools-reference)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+
+**The most complete open-source MCP server and CLI for Shopify.** 59 built-in tools + 5 custom tools across 5 domains — use it as an MCP server for AI agents (Claude, Cursor, Windsurf) or as a standalone CLI to manage Shopify stores directly from your terminal.
 
 ## Features
 
-- **49 built-in tools + 5 example custom tools** across 5 domains (Products, Orders, Customers, Inventory, Analytics)
+- **59 built-in tools + 5 custom tools** across 5 domains — Products (15), Orders (17), Customers (9), Inventory (7), Analytics (16)
 - **Standalone CLI** — natural domain commands from the terminal without MCP (`cob-shopify products list --limit 5`, `orders get --id ...`, etc.)
 - **MCP server** — connect to Claude, Cursor, Windsurf, or any MCP-compatible AI agent
 - **4 MCP resources** (Shop info, Locations, Policies, Currencies)
@@ -17,6 +24,15 @@ Production-grade MCP server **and** CLI tool for Shopify. Use it as an MCP serve
 - **82% less context bloat** — Advertise-and-Activate mode: 1 meta-tool instead of 49 schemas, domains loaded on demand
 - **Config-driven** — YAML config, env vars, CLI overrides
 - **Type-safe** — Full TypeScript with Zod validation
+
+## Why cob-shopify-mcp
+
+| | What you get |
+|---|---|
+| **Dual-mode** | Same 64 tools work as both CLI commands and MCP server — no competitor offers both |
+| **ShopifyQL Analytics** | 16 analytics tools powered by ShopifyQL — sales summaries, cohort analysis, vendor performance, period-over-period comparison — each in a single API call |
+| **82% less AI context** | Advertise-and-Activate loads 1 meta-tool instead of 59 schemas. Domains activate on demand |
+| **Production-grade** | Cost-based rate limiting, query caching, retry with backoff, encrypted token storage, 600 tests |
 
 ## MCP vs CLI — When to Use What
 
