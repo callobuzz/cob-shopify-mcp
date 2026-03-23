@@ -916,6 +916,10 @@ This server manages your store via the **Admin GraphQL API**. Pair it with Shopi
 
 See the full changelog here → [CHANGELOG.md](./CHANGELOG.md)
 
+## About
+
+Built by [Call O Buzz Services](https://callobuzz.com) — AI-driven software development, SaaS solutions, and open source tools.
+
 ## License
 
 MIT
