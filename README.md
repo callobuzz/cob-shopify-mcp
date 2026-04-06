@@ -6,6 +6,7 @@
 [![node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
 [![tools](https://img.shields.io/badge/tools-64-orange)](https://github.com/svinpeace/cob-shopify-mcp#tools-reference)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![GitHub stars](https://img.shields.io/github/stars/callobuzz/cob-shopify-mcp?style=social)](https://github.com/callobuzz/cob-shopify-mcp)
 
 **The most complete open-source MCP server and CLI for Shopify.** 59 built-in tools + 5 custom tools across 5 domains — use it as an MCP server for AI agents (Claude, Cursor, Windsurf) or as a standalone CLI to manage Shopify stores directly from your terminal.
 
@@ -887,7 +888,7 @@ COB_SHOPIFY_ENABLE=some_tier2_tool         # Enable specific Tier 2 tools
 COB_SHOPIFY_READ_ONLY=true                 # Disable ALL write operations
 ```
 
-| Feature | **cob-shopify-mcp** | GeLi2001 (147⭐) | pashpashpash (35⭐) | antoineschaller (10⭐) | benwmerritt |
+| Feature | **cob-shopify-mcp (9⭐)** | GeLi2001 (147⭐) | pashpashpash (35⭐) | antoineschaller (10⭐) | benwmerritt |
 |---------|:---:|:---:|:---:|:---:|:---:|
 | **Tools** | **64** (59 built-in + 5 custom) | 14 | 15 | 22 | 30+ |
 | **MCP Resources** | **4** | 0 | 0 | 0 | 0 |
