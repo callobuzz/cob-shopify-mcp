@@ -48,6 +48,7 @@
 		"tsup": "^8.5.1",
 		"tsx": "^4.19.4",
 		"typescript": "^5.9.3",
+		"vite": "8.0.8",
 		"vitest": "^4.1.0"
 	},
 	"optionalDependencies": {
@@ -73,7 +74,10 @@
 	"pnpm": {
 		"overrides": {
 			"picomatch": ">=4.0.4",
-			"path-to-regexp": ">=8.4.2"
+			"path-to-regexp": ">=8.4.2",
+			"vite": ">=8.0.8",
+			"hono": ">=4.12.12",
+			"@hono/node-server": ">=1.19.13"
 		}
 	},
 	"files": [
