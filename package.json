@@ -1,6 +1,6 @@
 {
 	"name": "cob-shopify-mcp",
-	"version": "0.6.4",
+	"version": "0.6.5",
 	"description": "Production-grade MCP server and CLI tool for Shopify Admin GraphQL API",
 	"type": "module",
 	"engines": {
@@ -76,8 +76,11 @@
 			"picomatch": ">=4.0.4",
 			"path-to-regexp": ">=8.4.2",
 			"vite": ">=8.0.8",
-			"hono": ">=4.12.14",
-			"@hono/node-server": ">=1.19.13"
+			"hono": ">=4.12.22",
+			"@hono/node-server": ">=1.19.13",
+			"fast-uri": ">=3.1.2",
+			"qs": ">=6.15.2",
+			"ip-address": ">=10.2.0"
 		}
 	},
 	"files": [

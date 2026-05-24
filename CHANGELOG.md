@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.5] - 2026-05-25
+
+### Security
+- Fix fast-uri path traversal via percent-encoded dot segments (High) — upgraded to 3.1.2
+- Fix fast-uri host confusion via percent-encoded authority delimiters (High) — upgraded to 3.1.2
+- Fix Hono `bodyLimit()` bypass for chunked/unknown-length requests (Moderate) — upgraded to 4.12.22
+- Fix Hono cache middleware ignoring `Vary: Authorization/Cookie` leading to cross-user cache leakage (Moderate) — upgraded to 4.12.22
+- Fix Hono JSX unvalidated tag names allowing HTML injection (Moderate) — upgraded to 4.12.22
+- Fix Hono CSS declaration injection via style object values in JSX SSR (Moderate) — upgraded to 4.12.22
+- Fix Hono improper validation of NumericDate claims in JWT `verify()` (Low) — upgraded to 4.12.22
+- Fix qs remotely triggerable DoS via `stringify` crash on null/undefined entries (Moderate) — upgraded to 6.15.2
+- Fix ip-address XSS in Address6 HTML-emitting methods (Moderate) — upgraded to 10.2.0
+
+### Changed
+- Update `pnpm.overrides` for hono (>=4.12.22), add fast-uri (>=3.1.2), qs (>=6.15.2), ip-address (>=10.2.0)
+
 ## [0.6.4] - 2026-04-12
 
 ### Security
