@@ -13,7 +13,6 @@ query GetArticle($id: ID!) {
     templateSuffix
     author {
       name
-      role
     }
     blog {
       id

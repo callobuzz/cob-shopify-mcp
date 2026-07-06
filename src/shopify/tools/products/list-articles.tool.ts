@@ -22,7 +22,6 @@ export const listArticles = defineTool({
 	input: {
 		query: z.string().optional(),
 		limit: z.number().min(1).max(250).optional(),
-		published_status: z.enum(["DRAFT", "PUBLISHED", "ALL"]).optional(),
 	},
 	graphql: query,
 	response: (data: any) => {

@@ -1,5 +1,5 @@
-query ListArticles($limit: Int, $query: String, $published_status: ArticleStatus) {
-  articles(first: $limit, query: $query, publishedStatus: $published_status) {
+query ListArticles($limit: Int, $query: String) {
+  articles(first: $limit, query: $query) {
     edges {
       node {
         id
