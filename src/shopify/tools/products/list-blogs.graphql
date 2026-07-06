@@ -1,0 +1,20 @@
+query ListBlogs($limit: Int) {
+  blogs(first: $limit) {
+    edges {
+      node {
+        id
+        title
+        handle
+        articlesCount {
+          count
+        }
+        createdAt
+        updatedAt
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

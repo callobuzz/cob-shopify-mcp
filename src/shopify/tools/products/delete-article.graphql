@@ -1,0 +1,13 @@
+mutation DeleteArticle($id: ID!) {
+  articleDelete(id: $id) {
+    article {
+      id
+      title
+      handle
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}

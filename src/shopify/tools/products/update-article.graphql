@@ -1,0 +1,25 @@
+mutation UpdateArticle($id: ID!, $title: String, $body: String, $summary: String, $tags: [String], $is_published: Boolean, $published_at: String, $author_name: String) {
+  articleUpdate(id: $id, article: {
+    title: $title
+    body: $body
+    summary: $summary
+    tags: $tags
+    publishedAt: $published_at
+    isPublished: $is_published
+    author: $author_name
+  }) {
+    article {
+      id
+      title
+      handle
+      publishedAt
+      isPublished
+      author { name }
+      tags
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}

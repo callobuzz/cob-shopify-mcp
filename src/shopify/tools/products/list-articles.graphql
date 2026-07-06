@@ -1,0 +1,25 @@
+query ListArticles($limit: Int, $query: String, $published_status: ArticleStatus) {
+  articles(first: $limit, query: $query, publishedStatus: $published_status) {
+    edges {
+      node {
+        id
+        title
+        handle
+        author { name }
+        publishedAt
+        tags
+        summary
+        isPublished
+        blog {
+          id
+          title
+          handle
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

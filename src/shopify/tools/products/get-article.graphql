@@ -1,0 +1,30 @@
+query GetArticle($id: ID!) {
+  article(id: $id) {
+    id
+    title
+    handle
+    body
+    summary
+    tags
+    isPublished
+    publishedAt
+    createdAt
+    updatedAt
+    templateSuffix
+    author {
+      name
+      role
+    }
+    blog {
+      id
+      title
+      handle
+    }
+    image {
+      url
+      altText
+      width
+      height
+    }
+  }
+}

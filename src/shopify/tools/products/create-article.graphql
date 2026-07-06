@@ -1,0 +1,28 @@
+mutation CreateArticle($blog_id: ID!, $title: String!, $body: String, $summary: String, $handle: String, $tags: [String], $is_published: Boolean, $published_at: String, $author_name: String, $template_suffix: String) {
+  articleCreate(article: {
+    blogId: $blog_id
+    title: $title
+    body: $body
+    summary: $summary
+    handle: $handle
+    tags: $tags
+    publishedAt: $published_at
+    isPublished: $is_published
+    author: $author_name
+    templateSuffix: $template_suffix
+  }) {
+    article {
+      id
+      title
+      handle
+      publishedAt
+      isPublished
+      author { name }
+      tags
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
