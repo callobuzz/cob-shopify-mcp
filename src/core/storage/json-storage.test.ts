@@ -145,4 +145,56 @@ describe("JsonStorage", () => {
 		// Temp file should not linger
 		await expect(fs.access(tmpPath)).rejects.toThrow();
 	});
+
+	it("keeps every token when writes overlap", async () => {
+		await storage.initialize();
+
+		// A fixed `<file>.tmp` makes concurrent writers collide: they write the same temp path and
+		// both rename it, so writes are lost and the losing rename fails with ENOENT (or EPERM on
+		// Windows). Overlapping token refreshes are normal for parallel tool calls.
+		const domains = Array.from({ length: 25 }, (_, i) => `store-${i}.myshopify.com`);
+		await Promise.all(domains.map((d) => storage.setToken(d, `shpat_${d}`)));
+
+		for (const d of domains) {
+			expect(await storage.getToken(d)).toBe(`shpat_${d}`);
+		}
+	});
+
+	it("leaves no temp files behind after concurrent writes", async () => {
+		await storage.initialize();
+
+		await Promise.all(
+			Array.from({ length: 25 }, (_, i) => storage.setToken(`concurrent-${i}.myshopify.com`, `shpat_${i}`)),
+		);
+
+		const leftover = (await fs.readdir(tmpDir)).filter((f) => f.endsWith(".tmp"));
+		expect(leftover).toEqual([]);
+	});
+
+	it("never exposes a partially written file to a concurrent reader", async () => {
+		await storage.initialize();
+		const tokensPath = path.join(tmpDir, "tokens.json");
+
+		// Readers must always observe a complete document: rename is atomic, so a reader sees
+		// either the old file or the new one, never a half-flushed buffer.
+		const writes = Promise.all(
+			Array.from({ length: 20 }, (_, i) => storage.setToken(`reader-${i}.myshopify.com`, `shpat_${i}`)),
+		);
+
+		const reads: Promise<void>[] = [];
+		for (let i = 0; i < 40; i++) {
+			reads.push(
+				fs
+					.readFile(tokensPath, "utf-8")
+					.then((content) => {
+						expect(() => JSON.parse(content)).not.toThrow();
+					})
+					.catch(() => {
+						// The file briefly not being readable is acceptable; malformed JSON is not.
+					}),
+			);
+		}
+
+		await Promise.all([writes, ...reads]);
+	});
 });

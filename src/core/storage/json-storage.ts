@@ -15,6 +15,10 @@ export class JsonStorage implements StorageBackend {
 	private readonly storesFile: string;
 	private readonly configFile: string;
 	private readonly logger?: pino.Logger;
+	/** Serializes writes per file path within this process. */
+	private readonly writeChain = new Map<string, Promise<void>>();
+	/** Makes each temp filename unique within this process. */
+	private writeCounter = 0;
 
 	constructor(storagePath: string, logger?: pino.Logger) {
 		this.storagePath = storagePath;
@@ -53,15 +57,15 @@ export class JsonStorage implements StorageBackend {
 	}
 
 	async setToken(storeDomain: string, token: string, _metadata?: TokenMetadata): Promise<void> {
-		const data = await this.readJsonFile<Record<string, string>>(this.tokensFile);
-		data[storeDomain] = token;
-		await this.writeJsonFile(this.tokensFile, data);
+		await this.mutateJsonFile<Record<string, string>>(this.tokensFile, (data) => {
+			data[storeDomain] = token;
+		});
 	}
 
 	async removeToken(storeDomain: string): Promise<void> {
-		const data = await this.readJsonFile<Record<string, string>>(this.tokensFile);
-		delete data[storeDomain];
-		await this.writeJsonFile(this.tokensFile, data);
+		await this.mutateJsonFile<Record<string, string>>(this.tokensFile, (data) => {
+			delete data[storeDomain];
+		});
 	}
 
 	// Store operations
@@ -77,15 +81,15 @@ export class JsonStorage implements StorageBackend {
 	}
 
 	async setStore(storeDomain: string, entry: StoreEntry): Promise<void> {
-		const data = await this.readJsonFile<Record<string, StoreEntry>>(this.storesFile);
-		data[storeDomain] = entry;
-		await this.writeJsonFile(this.storesFile, data);
+		await this.mutateJsonFile<Record<string, StoreEntry>>(this.storesFile, (data) => {
+			data[storeDomain] = entry;
+		});
 	}
 
 	async removeStore(storeDomain: string): Promise<void> {
-		const data = await this.readJsonFile<Record<string, StoreEntry>>(this.storesFile);
-		delete data[storeDomain];
-		await this.writeJsonFile(this.storesFile, data);
+		await this.mutateJsonFile<Record<string, StoreEntry>>(this.storesFile, (data) => {
+			delete data[storeDomain];
+		});
 	}
 
 	// Config persistence
@@ -119,20 +123,90 @@ export class JsonStorage implements StorageBackend {
 	}
 
 	/**
-	 * Atomic write: write to temp file then rename.
-	 * Sets file permissions to 0o600 (owner read/write only).
+	 * Serializes work on one file within this process.
+	 *
+	 * Every mutation here is read-modify-write, so the read and the write must be held together.
+	 * Without this, concurrent setToken() calls all read the same snapshot and the last write wins,
+	 * silently dropping the other tokens. Overlapping token refreshes are normal for parallel tool
+	 * calls, so this is reachable in ordinary use, not just under test.
+	 */
+	private async withFileLock<T>(filePath: string, fn: () => Promise<T>): Promise<T> {
+		const previous = this.writeChain.get(filePath) ?? Promise.resolve();
+		const run = previous.catch(() => {}).then(fn);
+		// Track a void-typed tail so a rejection here never becomes an unhandled rejection for
+		// the next waiter, which only needs the ordering, not the value.
+		const tail = run.then(
+			() => {},
+			() => {},
+		);
+		this.writeChain.set(filePath, tail);
+		try {
+			return await run;
+		} finally {
+			// Only clear if no later operation has queued behind this one.
+			if (this.writeChain.get(filePath) === tail) {
+				this.writeChain.delete(filePath);
+			}
+		}
+	}
+
+	/** Read, mutate and write one file atomically with respect to other callers in this process. */
+	private async mutateJsonFile<T extends object>(filePath: string, mutate: (data: T) => void): Promise<void> {
+		await this.withFileLock(filePath, async () => {
+			const data = await this.readJsonFile<T>(filePath);
+			mutate(data);
+			await this.writeJsonFileNow(filePath, data);
+		});
+	}
+
+	/**
+	 * Atomic write, safe against concurrent writers in other processes.
+	 *
+	 * The temp name is unique per process and per call: a fixed `<file>.tmp` means two concurrent
+	 * writers write the same temp path and then both rename it, so one loses its data and the other
+	 * fails with ENOENT (the temp file was already renamed away) or, on Windows, EPERM. Several
+	 * server instances sharing a storage directory hit exactly this.
 	 */
 	private async writeJsonFile(filePath: string, data: unknown): Promise<void> {
-		const tmpPath = `${filePath}.tmp`;
+		await this.withFileLock(filePath, () => this.writeJsonFileNow(filePath, data));
+	}
+
+	private async writeJsonFileNow(filePath: string, data: unknown): Promise<void> {
+		const tmpPath = `${filePath}.${process.pid}.${(this.writeCounter++).toString(36)}.tmp`;
 		const content = JSON.stringify(data, null, 2);
 		await fs.writeFile(tmpPath, content, { encoding: "utf-8", mode: 0o600 });
-		await fs.rename(tmpPath, filePath);
+		try {
+			await this.renameWithRetry(tmpPath, filePath);
+		} catch (err) {
+			// Never leave a stray temp file behind on failure.
+			await fs.rm(tmpPath, { force: true }).catch(() => {});
+			throw err;
+		}
 		// On some platforms, rename doesn't preserve mode from writeFile.
 		// Explicitly set permissions after rename — may be a no-op on Windows.
 		try {
 			await fs.chmod(filePath, 0o600);
 		} catch {
 			// chmod may not be fully supported on Windows; ignore gracefully
+		}
+	}
+
+	/**
+	 * Windows fails a rename with EPERM/EACCES/EBUSY when another process momentarily holds the
+	 * destination open — including antivirus and file indexers. These are transient, so retry
+	 * briefly rather than surfacing a spurious write failure.
+	 */
+	private async renameWithRetry(from: string, to: string, attempts = 5): Promise<void> {
+		for (let attempt = 0; attempt < attempts; attempt++) {
+			try {
+				await fs.rename(from, to);
+				return;
+			} catch (err) {
+				const code = (err as NodeJS.ErrnoException).code;
+				const transient = code === "EPERM" || code === "EACCES" || code === "EBUSY";
+				if (!transient || attempt === attempts - 1) throw err;
+				await new Promise((resolve) => setTimeout(resolve, 10 * 2 ** attempt));
+			}
 		}
 	}
 }

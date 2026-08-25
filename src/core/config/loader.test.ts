@@ -2,7 +2,12 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { KNOWN_API_VERSIONS } from "./api-versions.js";
 import { _resetConfig, getConfig, loadConfig } from "./loader.js";
+
+// api_version is validated against real support windows, so a hardcoded literal here would
+// start failing the day it ages out. Track the newest known version instead.
+const TEST_API_VERSION = KNOWN_API_VERSIONS[KNOWN_API_VERSIONS.length - 1].version;
 
 describe("config loader", () => {
 	let tmpDir: string;
@@ -13,6 +18,14 @@ describe("config loader", () => {
 		tmpDir = join(homedir(), `.cob-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 		mkdirSync(tmpDir, { recursive: true });
 		process.cwd = () => tmpDir;
+		// Env overrides file config by design, so any ambient SHOPIFY_*/COB_SHOPIFY_* value would
+		// silently defeat the file-precedence assertions below. That is not hypothetical: a real
+		// .env, or any run that loads one, sets exactly these.
+		for (const key of Object.keys(process.env)) {
+			if (key.startsWith("SHOPIFY_") || key.startsWith("COB_SHOPIFY_")) {
+				delete process.env[key];
+			}
+		}
 		_resetConfig();
 	});
 
@@ -35,14 +48,14 @@ auth:
   store_domain: yaml-store.myshopify.com
   access_token: shpat_yaml
 shopify:
-  api_version: "2025-10"
+  api_version: "${TEST_API_VERSION}"
 `;
 		writeFileSync(join(tmpDir, "cob-shopify-mcp.config.yaml"), yaml);
 
 		const config = await loadConfig();
 		expect(config.auth.store_domain).toBe("yaml-store.myshopify.com");
 		expect(config.auth.access_token).toBe("shpat_yaml");
-		expect(config.shopify.api_version).toBe("2025-10");
+		expect(config.shopify.api_version).toBe(TEST_API_VERSION);
 	});
 
 	it("loads config from JSON file", async () => {

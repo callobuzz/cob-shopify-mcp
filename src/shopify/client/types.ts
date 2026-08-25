@@ -16,7 +16,16 @@ export interface ShopifyClientConfig {
 		error(msg: string, ...args: unknown[]): void;
 	};
 	cache?: { readTtl: number; searchTtl: number; analyticsTtl: number };
-	rateLimit?: { respectShopifyCost: boolean; maxConcurrent: number };
+	rateLimit?: {
+		respectShopifyCost: boolean;
+		maxConcurrent: number;
+		/**
+		 * Longest to block waiting for the ShopifyQL allowance window to reset before failing with
+		 * the reset time. Defaults to 10s: the window is a minute, so waiting always terminates, but
+		 * a tool call that blocks that long reads as a hang. Batch jobs can raise it.
+		 */
+		maxShopifyQLWaitMs?: number;
+	};
 }
 
 export type QueryType = "read" | "search" | "mutation" | "analytics";

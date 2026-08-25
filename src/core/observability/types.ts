@@ -8,6 +8,19 @@ export interface ShopifyCostData {
 	};
 }
 
+/**
+ * ShopifyQL requests are billed against a second, separate budget returned as
+ * `extensions.shopifyqlCost`, alongside the usual `extensions.cost`. It is not a leaky bucket:
+ * there is no restore rate, the allowance refills only at `windowResetAt`. Exhausting it makes
+ * Shopify answer analytics queries with a "Rate limited" GraphQL error inside an HTTP 200.
+ */
+export interface ShopifyQLCostData {
+	requestedQueryCost: number;
+	maximumAvailable: number;
+	currentlyAvailable: number;
+	windowResetAt: string;
+}
+
 export interface SessionCostStats {
 	totalCostConsumed: number;
 	totalCallsMade: number;

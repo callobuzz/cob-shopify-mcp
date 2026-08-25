@@ -31,7 +31,10 @@ export default defineTool({
 		const result = await executeShopifyQL(query, ctx);
 
 		const products = result.data.map((row) => ({
-			productTitle: row.product_title as string,
+			// Shopify returns a null product_title for sales it cannot attribute to a product — on a
+			// real store that row can top the list. Casting it to string produced a `null` masquerading
+			// as one, which breaks any consumer that treats the title as text.
+			productTitle: typeof row.product_title === "string" ? row.product_title : null,
 			totalRevenue: typeof row.total_sales === "number" ? Math.round(row.total_sales * 100) / 100 : 0,
 			netSales: typeof row.net_sales === "number" ? Math.round(row.net_sales * 100) / 100 : 0,
 			orderCount: typeof row.orders === "number" ? row.orders : 0,

@@ -38,7 +38,9 @@ for (const domain of domains) {
 		const match = content.match(/name:\s*["']([^"']+)["']/);
 		if (match) {
 			const toolName = match[1];
-			map[toolName] = deriveActionName(toolName, domain);
+			// An explicit cliAction wins over the derived name — see ToolDefinition.cliAction.
+			const override = content.match(/cliAction:\s*["']([^"']+)["']/);
+			map[toolName] = override ? override[1] : deriveActionName(toolName, domain);
 		}
 	}
 }

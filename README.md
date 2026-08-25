@@ -8,11 +8,11 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![GitHub stars](https://img.shields.io/github/stars/callobuzz/cob-shopify-mcp?style=social)](https://github.com/callobuzz/cob-shopify-mcp)
 
-**The most complete open-source MCP server and CLI for Shopify.** 59 built-in tools + 5 custom tools across 5 domains — use it as an MCP server for AI agents (Claude, Cursor, Windsurf) or as a standalone CLI to manage Shopify stores directly from your terminal.
+**The most complete open-source MCP server and CLI for Shopify.** 62 built-in tools + 2 custom tool examples across 5 domains — use it as an MCP server for AI agents (Claude, Cursor, Windsurf) or as a standalone CLI to manage Shopify stores directly from your terminal.
 
 ## Features
 
-- **59 built-in tools + 5 custom tools** across 5 domains — Products (15), Orders (17), Customers (9), Inventory (7), Analytics (16)
+- **62 built-in tools + 2 custom tool examples** across 5 domains — Products (15), Orders (15), Customers (9), Inventory (7), Analytics (16)
 - **Standalone CLI** — natural domain commands from the terminal without MCP (`cob-shopify products list --limit 5`, `orders get --id ...`, etc.)
 - **MCP server** — connect to Claude, Cursor, Windsurf, or any MCP-compatible AI agent
 - **4 MCP resources** (Shop info, Locations, Policies, Currencies)
@@ -22,7 +22,7 @@
 - **Cost tracking** — Every response includes Shopify API cost metadata
 - **Rate limiting** — Respects Shopify's cost-based throttling
 - **Query caching** — Configurable TTL per query type
-- **82% less context bloat** — Advertise-and-Activate mode: 1 meta-tool instead of 59 schemas, domains loaded on demand
+- **82% less context bloat** — Advertise-and-Activate mode: 1 meta-tool instead of 62 schemas, domains loaded on demand
 - **Config-driven** — YAML config, env vars, CLI overrides
 - **Type-safe** — Full TypeScript with Zod validation
 
@@ -32,7 +32,7 @@
 |---|---|
 | **Dual-mode** | Same 64 tools work as both CLI commands and MCP server — no competitor offers both |
 | **ShopifyQL Analytics** | 16 analytics tools powered by ShopifyQL — sales summaries, cohort analysis, vendor performance, period-over-period comparison — each in a single API call |
-| **82% less AI context** | Advertise-and-Activate loads 1 meta-tool instead of 59 schemas. Domains activate on demand |
+| **82% less AI context** | Advertise-and-Activate loads 1 meta-tool instead of 62 schemas. Domains activate on demand |
 | **Production-grade** | Cost-based rate limiting, query caching, retry with backoff, encrypted token storage, 600 tests |
 
 ## MCP vs CLI — When to Use What
@@ -66,12 +66,12 @@ claude mcp add cob-shopify-mcp -- cob-shopify-mcp start
 
 ## Advertise-and-Activate
 
-Every MCP server on GitHub dumps all tool schemas into the AI's context on connect. With 59 tools, that's ~19,000 tokens consumed before the user even asks a question. Most conversations use 1-2 tools — **95% of those tokens are wasted**.
+Every MCP server on GitHub dumps all tool schemas into the AI's context on connect. With 62 tools, that's ~19,000 tokens consumed before the user even asks a question. Most conversations use 1-2 tools — **95% of those tokens are wasted**.
 
-Advertise-and-Activate fixes this. Instead of loading all 59 tool schemas, the server registers a single `activate_tools` meta-tool with a lightweight domain summary:
+Advertise-and-Activate fixes this. Instead of loading all 62 tool schemas, the server registers a single `activate_tools` meta-tool with a lightweight domain summary:
 
 ```
-Before (default):   59 tool schemas → ~19,000 tokens per prompt
+Before (default):   62 tool schemas → ~19,000 tokens per prompt
 After (activate):   1 meta-tool     → ~300 tokens per prompt
 On-demand:          AI activates 1 domain → +2,000-3,000 tokens only when needed
 ```
@@ -144,7 +144,7 @@ flowchart LR
         AUTO["Automation Workflows"]
     end
 
-    MCP["cob-shopify-mcp\n59 tools · 4 resources · 4 prompts\nAdvertise-and-Activate: 82% less context"]
+    MCP["cob-shopify-mcp\n62 tools · 4 resources · 4 prompts\nAdvertise-and-Activate: 82% less context"]
 
     SHOPIFY["Shopify Store"]
 
@@ -247,7 +247,7 @@ claude mcp add cob-shopify-mcp \
 }
 ```
 
-Restart Claude Desktop after saving. You'll see the tools icon showing 59 available tools.
+Restart Claude Desktop after saving. You'll see the tools icon showing 62 available tools.
 
 ---
 
@@ -478,7 +478,7 @@ Fill in your credentials:
 SHOPIFY_CLIENT_ID=your_client_id_here
 SHOPIFY_CLIENT_SECRET=shpss_your_secret_here
 SHOPIFY_STORE_DOMAIN=my-dev-store.myshopify.com
-SHOPIFY_API_VERSION=2025-01
+SHOPIFY_API_VERSION=2026-01
 ```
 
 The server uses **client credentials auth** — it automatically exchanges your Client ID + Secret for a 24-hour access token, and refreshes it before it expires. No manual token management needed.
@@ -613,7 +613,7 @@ cob-shopify tools info list_products
 | `update_product_status` | Change product status | `write_products` |
 | `manage_product_tags` | Add/remove product tags | `write_products` |
 
-### Orders (17 tools)
+### Orders (15 built-in + 2 custom examples)
 | Tool | Description | Scope |
 |------|-------------|-------|
 | `list_orders` | List orders with filters | `read_orders` |
@@ -628,8 +628,8 @@ cob-shopify tools info list_products
 | `add_order_tag` | Add tags to order | `write_orders` |
 | `update_order_tags` | Update order tags | `write_orders` |
 | `mark_order_paid` | Mark order as paid | `write_orders` |
-| `cancel_order` | Cancel an order (async) | `write_orders` |
-| `complete_draft_order` | Complete draft to real order | `write_draft_orders` |
+| `cancel_order` _(custom example)_ | Cancel an order (async) | `write_orders` |
+| `complete_draft_order` _(custom example)_ | Complete draft to real order | `write_draft_orders` |
 | `get_fulfillment_orders` | Get fulfillment order IDs | `read_assigned_fulfillment_orders` |
 | `create_fulfillment` | Create fulfillment with tracking | `write_assigned_fulfillment_orders` |
 | `update_fulfillment_tracking` | Update tracking info | `write_assigned_fulfillment_orders` |
@@ -679,7 +679,7 @@ cob-shopify tools info list_products
 | `conversion_funnel` | Sessions to orders funnel | `read_reports` |
 | `traffic_analytics` | Session traffic over time | `read_reports` |
 | `inventory_risk_report` | Over/understock risk analysis | `read_inventory`, `read_products` |
-| `shopifyql_query` | Raw ShopifyQL passthrough | `read_reports` |
+| `shopifyql_query` | Raw ShopifyQL passthrough — **Tier 2, disabled by default** | `read_reports` |
 
 ## Other Editors (Cursor / Windsurf)
 
@@ -705,12 +705,40 @@ Add to `.cursor/mcp.json` or equivalent:
 
 ```bash
 pnpm install
-pnpm test           # Unit tests
-pnpm test:integration  # Integration tests (requires Shopify credentials)
+pnpm test           # Unit tests only — no network, no .env needed
+pnpm test:integration  # Everything, incl. live tests against a real store (loads .env)
 pnpm lint           # Biome linter
 pnpm typecheck      # TypeScript type checking
 pnpm build          # Build with tsup
 ```
+
+### Running the live tests
+
+Live tests are gated on credentials and skip cleanly without them. Put either auth method in
+`.env` (gitignored) — client credentials are enough, no separate access token required:
+
+```env
+SHOPIFY_STORE_DOMAIN=your-dev-store.myshopify.com
+SHOPIFY_CLIENT_ID=xxxxxxxxxxxx
+SHOPIFY_CLIENT_SECRET=xxxxxxxxxxxx
+# ...or a static token instead, which takes precedence if both are present:
+# SHOPIFY_ACCESS_TOKEN=shpat_xxxxxxxxxxxx
+```
+
+The app needs all 13 scopes the tools use — `read_reports` in particular, or every ShopifyQL
+analytics tool fails:
+
+```
+read_products, write_products, read_orders, write_orders, write_draft_orders,
+read_customers, write_customers, read_inventory, write_inventory, read_locations,
+read_assigned_fulfillment_orders, write_assigned_fulfillment_orders, read_reports
+```
+
+A fresh dev store has no data, so analytics assertions will be vacuous — `node scripts/create-test-orders.js`
+seeds it first.
+
+> `pnpm test` deliberately does **not** load `.env`: the unit suite stays hermetic. That means live
+> tests always skip there, by design. Use `pnpm test:integration` to actually exercise a store.
 
 ## Architecture
 
@@ -768,7 +796,7 @@ flowchart TB
             CACHE["Cache Layer"]
         end
 
-        subgraph TOOLS["59 Tool Definitions"]
+        subgraph TOOLS["62 Tool Definitions"]
             direction LR
             PROD["Products\n15 tools"]
             ORD["Orders\n12 tools"]
@@ -831,7 +859,7 @@ src/
 │   └── helpers/        # defineTool, defineResource, definePrompt
 ├── shopify/            # Shopify-specific implementation
 │   ├── client/         # GraphQL client, rate limiter, cache, retry
-│   ├── tools/          # 59 tools across 5 domains
+│   ├── tools/          # 62 tools across 5 domains
 │   ├── resources/      # 4 MCP resources
 │   └── prompts/        # 4 MCP prompts
 ├── server/             # Server bootstrap and registration bridges
@@ -840,7 +868,7 @@ src/
 
 ## How It Compares
 
-59 tools ship enabled out of the box — but the tool count is **unlimited**. Developers can add any Shopify GraphQL operation as a custom tool using simple YAML files, no TypeScript required:
+61 tools ship enabled out of the box (all Tier 1; the 62nd, `shopifyql_query`, is Tier 2 and opt-in) — but the tool count is **unlimited**. Developers can add any Shopify GraphQL operation as a custom tool using simple YAML files, no TypeScript required:
 
 ```yaml
 # my-tools/get-metafields.yaml
@@ -890,7 +918,7 @@ COB_SHOPIFY_READ_ONLY=true                 # Disable ALL write operations
 
 | Feature | **cob-shopify-mcp (11⭐)** | GeLi2001 (147⭐) | pashpashpash (35⭐) | antoineschaller (10⭐) | benwmerritt |
 |---------|:---:|:---:|:---:|:---:|:---:|
-| **Tools** | **64** (59 built-in + 5 custom) | 14 | 15 | 22 | 30+ |
+| **Tools** | **64** (62 built-in + 2 custom) | 14 | 15 | 22 | 30+ |
 | **MCP Resources** | **4** | 0 | 0 | 0 | 0 |
 | **MCP Prompts** | **4** | 0 | 0 | 0 | 0 |
 | **Auth methods** | **3** (static, client-creds, OAuth) | 2 | 1 | 1 | 2 |

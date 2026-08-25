@@ -33,8 +33,10 @@ try {
  * Resolve the CLI action name for a tool, using the pre-computed map when
  * available and falling back to runtime derivation for custom/unknown tools.
  */
-function resolveActionName(toolName: string, domain: string): string {
-	return actionNameMap[toolName] ?? deriveActionName(toolName, domain);
+function resolveActionName(tool: ToolDefinition): string {
+	// An explicit cliAction always wins: derivation strips the domain word mechanically, which is
+	// wrong when that word is part of the subject rather than a redundant suffix.
+	return tool.cliAction ?? actionNameMap[tool.name] ?? deriveActionName(tool.name, tool.domain);
 }
 
 /**
@@ -62,7 +64,7 @@ export function buildDomainCommands(tools: ToolDefinition[]): Command[] {
 		const domainCmd = new Command(domain).description(getDomainDescription(domain));
 
 		for (const tool of domainTools) {
-			const actionName = resolveActionName(tool.name, domain);
+			const actionName = resolveActionName(tool);
 			domainCmd.addCommand(toolToCommand(tool, actionName));
 		}
 

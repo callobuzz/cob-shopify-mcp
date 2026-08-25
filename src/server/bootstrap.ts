@@ -1,4 +1,6 @@
+import { resolve } from "node:path";
 import { createAuthProvider } from "@core/auth/factory.js";
+import { checkApiVersion } from "@core/config/api-versions.js";
 import { loadConfig } from "@core/config/loader.js";
 import type { CobConfig, DeepPartial } from "@core/config/types.js";
 import { registerAdvertiser } from "@core/engine/advertiser.js";
@@ -8,7 +10,7 @@ import { AuditLogger } from "@core/observability/audit.js";
 import { CostTracker } from "@core/observability/cost-tracker.js";
 import { createLogger } from "@core/observability/logger.js";
 import { ToolRegistry } from "@core/registry/tool-registry.js";
-import { loadYamlTools } from "@core/registry/yaml-loader.js";
+import { loadYamlToolsDetailed, type YamlLoadResult } from "@core/registry/yaml-loader.js";
 import { createStorage } from "@core/storage/factory.js";
 import { createTransport } from "@core/transport/factory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -31,6 +33,14 @@ export async function bootstrap(overrides?: DeepPartial<CobConfig>): Promise<voi
 
 	// 2. Create logger
 	const logger = createLogger("server", config.observability.log_level);
+
+	// Fatal api_version problems are rejected by the config schema. What reaches here is either
+	// fine, nearing end of support, or newer than this build's table — all worth saying out loud,
+	// because Shopify itself never reports a version problem.
+	const versionCheck = checkApiVersion(config.shopify.api_version);
+	if (versionCheck.status !== "supported") {
+		logger.warn({ apiVersion: config.shopify.api_version, status: versionCheck.status }, versionCheck.message);
+	}
 
 	// 3. Create storage
 	let storage: Awaited<ReturnType<typeof createStorage>>;
@@ -101,11 +111,19 @@ export async function bootstrap(overrides?: DeepPartial<CobConfig>): Promise<voi
 		registry.register(tool);
 	}
 
-	// Load YAML custom tools
+	// Load YAML custom tools. Skipped paths are warned about individually and summarised in the
+	// startup line below — a wrong custom_paths must never look like a healthy boot.
+	let yamlLoad: YamlLoadResult = { tools: [], loaded: [], skipped: [] };
 	if (config.tools.custom_paths.length > 0) {
-		const yamlTools = loadYamlTools(config.tools.custom_paths);
-		for (const tool of yamlTools) {
+		yamlLoad = loadYamlToolsDetailed(config.tools.custom_paths, logger);
+		for (const tool of yamlLoad.tools) {
 			registry.register(tool);
+		}
+		if (yamlLoad.tools.length === 0) {
+			logger.warn(
+				{ customToolPaths: config.tools.custom_paths.map((p) => resolve(p)) },
+				`custom_paths is configured with ${config.tools.custom_paths.length} path(s) but zero custom tools were loaded. Any tool expected from those paths will be missing.`,
+			);
 		}
 	}
 
@@ -143,6 +161,11 @@ export async function bootstrap(overrides?: DeepPartial<CobConfig>): Promise<voi
 	logger.info(
 		{
 			tools: registry.filter(config).length,
+			builtInTools: allTools.length,
+			customTools: yamlLoad.tools.length,
+			customToolPaths: yamlLoad.loaded.map((l) => ({ path: l.resolvedPath, tools: l.count })),
+			customToolPathsSkipped: yamlLoad.skipped.map((s) => ({ path: s.resolvedPath, reason: s.reason })),
+			apiVersion: config.shopify.api_version,
 			resources: allResources.length,
 			prompts: allPrompts.length,
 			transport: config.transport.type,

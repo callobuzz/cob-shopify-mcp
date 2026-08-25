@@ -19,6 +19,17 @@
 		"lineWidth": 120
 	},
 	"files": {
-		"includes": ["**", "!node_modules", "!dist", "!coverage", "!**/*.graphql", "!.claude", "!docs"]
+		"includes": [
+			"**",
+			"!node_modules",
+			"!dist",
+			"!coverage",
+			"!**/*.graphql",
+			"!.claude",
+			"!.codex",
+			"!.cob-anchor",
+			"!docs",
+			"!test-data"
+		]
 	}
 }

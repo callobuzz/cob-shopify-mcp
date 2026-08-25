@@ -123,16 +123,62 @@ All config options can be set via environment variables. Env vars override confi
 |----------|-------------------|-------------|
 | `SHOPIFY_STORE_DOMAIN` | `auth.store_domain` | Your Shopify store domain |
 | `SHOPIFY_ACCESS_TOKEN` | `auth.access_token` | Static access token |
-| `COB_SHOPIFY_CLIENT_ID` | `auth.client_id` | OAuth client ID |
-| `COB_SHOPIFY_CLIENT_SECRET` | `auth.client_secret` | OAuth client secret |
+| `SHOPIFY_CLIENT_ID` | `auth.client_id` | OAuth client ID |
+| `SHOPIFY_CLIENT_SECRET` | `auth.client_secret` | OAuth client secret |
 | `COB_SHOPIFY_AUTH_METHOD` | `auth.method` | Auth method override |
-| `COB_SHOPIFY_API_VERSION` | `shopify.api_version` | Shopify API version |
+| `SHOPIFY_API_VERSION` | `shopify.api_version` | Shopify API version — validated at startup, see below |
+| `COB_SHOPIFY_ALLOW_UNSUPPORTED_API_VERSION` | — | Allow an aged-out `api_version` instead of failing startup (`true`/`false`) |
 | `COB_SHOPIFY_READ_ONLY` | `tools.read_only` | Block all mutations (`true`/`false`) |
 | `COB_SHOPIFY_ADVERTISE_AND_ACTIVATE` | `tools.advertise_and_activate` | Enable lazy tool loading (`true`/`false`) |
 | `COB_SHOPIFY_TRANSPORT` | `transport.type` | Transport type (`stdio`/`http`) |
 | `COB_SHOPIFY_PORT` | `transport.port` | HTTP transport port |
 | `COB_SHOPIFY_LOG_LEVEL` | `observability.log_level` | Log level |
 | `COB_SHOPIFY_STORAGE_BACKEND` | `storage.backend` | Storage backend (`json`/`sqlite`) |
+
+---
+
+## API Version Validation
+
+Shopify releases a new Admin API version each quarter (`YYYY-01`, `-04`, `-07`, `-10`) and supports
+each for 12 months.
+
+**Shopify does not reject an unrecognized or aged-out version.** It silently serves the request
+against the *oldest* version it still supports. A typo like `2026-13`, or a pinned version that
+quietly ages out, therefore keeps working for months — and then starts returning different data,
+with no config change and no error naming the cause.
+
+`api_version` is validated at startup to close that gap:
+
+| Case | Behaviour |
+|---|---|
+| Malformed (`2026-13`, `latest`, `""`) | **Startup fails** with the supported versions listed |
+| Past end of support (`2025-01`) | **Startup fails**, naming the support-end date |
+| Within 90 days of end of support | Boots, logs a `WARN` with the days remaining |
+| Newer than this build's table | Boots, logs a `WARN` — never blocks a freshly released Shopify version |
+| Supported | Boots silently |
+
+To keep an aged-out version anyway — for example while a migration is in flight:
+
+```bash
+COB_SHOPIFY_ALLOW_UNSUPPORTED_API_VERSION=true
+```
+
+The support table lives in `src/core/config/api-versions.ts`.
+
+### Tools that adapt to the version
+
+Where Shopify has renamed a field across versions, tools pick the right name from your configured
+`api_version` rather than pinning you to one era:
+
+| Change | Affects | Behaviour |
+|---|---|---|
+| ShopifyQL `returns` → `sales_reversals` (renamed 2026-04, old name removed 2026-07) | `refund_rate_summary` | Queries `returns` on ≤ 2026-01 and `sales_reversals` on ≥ 2026-04 |
+
+The rename table is in `src/shopify/client/shopifyql-fields.ts`.
+
+**`shopifyql_query` is a raw passthrough** — queries you write are sent verbatim and are *not*
+rewritten. If you hand-write ShopifyQL against `returns`, `net_returns`, `quantity_returned` or the
+other renamed columns, update them yourself before moving to 2026-07 or later.
 
 ---
 

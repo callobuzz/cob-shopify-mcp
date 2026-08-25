@@ -1,4 +1,4 @@
-import type { ShopifyCostData } from "@core/observability/types.js";
+import type { ShopifyCostData, ShopifyQLCostData } from "@core/observability/types.js";
 
 export class RateLimiter {
 	private currentlyAvailable: number;
@@ -7,6 +7,7 @@ export class RateLimiter {
 	private activeConcurrent = 0;
 	private maxConcurrent: number;
 	private enabled: boolean;
+	private shopifyQLCost: ShopifyQLCostData | null = null;
 	private waitQueue: Array<{
 		resolve: () => void;
 		estimatedCost: number;
@@ -51,6 +52,28 @@ export class RateLimiter {
 		this.currentlyAvailable = costData.throttleStatus.currentlyAvailable;
 		this.maxAvailable = costData.throttleStatus.maximumAvailable;
 		this.restoreRate = costData.throttleStatus.restoreRate;
+	}
+
+	/**
+	 * Records the ShopifyQL allowance reported by an analytics response.
+	 *
+	 * This is a second budget, independent of the leaky bucket above: it has no restore rate and
+	 * refills only at `windowResetAt`. Tracking it is what makes it possible to warn before
+	 * analytics stops working, rather than discovering it from a failed query.
+	 */
+	updateFromShopifyQLCost(costData: ShopifyQLCostData): void {
+		this.shopifyQLCost = costData;
+	}
+
+	/** The most recently reported ShopifyQL allowance, or null if no analytics query has run. */
+	getShopifyQLBudget(): ShopifyQLCostData | null {
+		return this.shopifyQLCost;
+	}
+
+	/** Fraction of the ShopifyQL allowance still available (0–1), or null if unknown. */
+	getShopifyQLBudgetFraction(): number | null {
+		if (!this.shopifyQLCost || this.shopifyQLCost.maximumAvailable <= 0) return null;
+		return this.shopifyQLCost.currentlyAvailable / this.shopifyQLCost.maximumAvailable;
 	}
 
 	private processQueue(): void {

@@ -6,7 +6,10 @@ import { z } from "zod";
 export default defineTool({
 	name: "shopifyql_query",
 	domain: "analytics",
-	tier: 1,
+	// Tier 2 (disabled by default): this is a raw passthrough that runs any ShopifyQL the caller
+	// writes, so it reaches store data no curated analytics tool exposes. Enable deliberately with
+	// tools.enable: ["shopifyql_query"].
+	tier: 2,
 	description: "Execute any ShopifyQL query for custom analytics and reporting",
 	scopes: ["read_reports"],
 	input: {

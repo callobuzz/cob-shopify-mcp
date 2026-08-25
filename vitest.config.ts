@@ -27,10 +27,10 @@ export default defineConfig({
 	},
 	resolve: {
 		alias: [
-			{ find: "@core", replacement: resolve(__dirname, "src/core") },
+			{ find: "@core", replacement: resolve(import.meta.dirname, "src/core") },
 			{
 				find: /^@shopify\/(?!admin-api-client|shopify-api|graphql-client)/,
-				replacement: `${resolve(__dirname, "src/shopify")}/`,
+				replacement: `${resolve(import.meta.dirname, "src/shopify")}/`,
 			},
 		],
 	},

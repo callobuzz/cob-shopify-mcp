@@ -1,6 +1,9 @@
 # Tool Reference
 
-cob-shopify-mcp ships **64 tools** across 5 domains: 59 built-in TypeScript tools and 5 custom YAML tools.
+cob-shopify-mcp ships **64 tools** across 5 domains: 62 built-in TypeScript tools and 2 custom YAML examples.
+
+Of the 62 built-ins, 61 are Tier 1 (enabled by default). `shopifyql_query` is Tier 2 and must be
+enabled deliberately.
 
 CLI pattern: `cob-shopify <domain> <action> [flags]`
 
@@ -30,7 +33,7 @@ CLI pattern: `cob-shopify <domain> <action> [flags]`
 
 ## Orders (17 tools)
 
-### Built-in (12 tools)
+### Built-in (15 tools)
 
 | Tool | Description | CLI |
 |------|-------------|-----|
@@ -46,18 +49,30 @@ CLI pattern: `cob-shopify <domain> <action> [flags]`
 | `add_order_tag` | Add tags to an order | `cob-shopify orders add-tag --id gid://shopify/Order/123 --tags vip,priority` |
 | `update_order_tags` | Set or replace tags on an order | `cob-shopify orders update-tags --id gid://shopify/Order/123 --tags wholesale` |
 | `mark_order_paid` | Mark an order as paid | `cob-shopify orders mark-paid --id gid://shopify/Order/123` |
+| `get_fulfillment_orders` | Get the fulfillment orders for an order (required before creating a fulfillment) | `cob-shopify orders get-fulfillment-orders --id gid://shopify/Order/123` |
+| `create_fulfillment` | Fulfill a fulfillment order (mark as shipped) with tracking info | `cob-shopify orders create-fulfillment --fulfillment_order_id gid://shopify/FulfillmentOrder/123` |
+| `update_fulfillment_tracking` | Update tracking info on an existing fulfillment | `cob-shopify orders update-fulfillment-tracking --fulfillment_id gid://shopify/Fulfillment/123 --tracking_number "1Z999AA1"` |
 
-### Custom YAML (5 tools)
+**Fulfilling an order** is a two-step flow — `create_fulfillment` needs a *fulfillment order* GID, not an order GID:
 
-These tools are defined as YAML files in `custom-tools/` and auto-register under the `orders` domain.
+```bash
+# 1. Get the fulfillment order GID
+cob-shopify orders get-fulfillment-orders --id gid://shopify/Order/123 --json
+
+# 2. Fulfill it, attaching tracking
+cob-shopify orders create-fulfillment \
+  --fulfillment_order_id gid://shopify/FulfillmentOrder/456 \
+  --tracking_company UPS --tracking_number 1Z999AA1 --notify_customer
+```
+
+### Custom YAML (2 tools)
+
+These tools ship as YAML examples in `custom-tools/` and auto-register under the `orders` domain only when `custom_paths` points at that folder. They are intentionally *not* built in.
 
 | Tool | Description | CLI |
 |------|-------------|-----|
 | `cancel_order` | Cancel an order with reason and restock option | `cob-shopify orders cancel --order_id gid://shopify/Order/123 --reason CUSTOMER --restock true` |
 | `complete_draft_order` | Convert a draft order into a real order | `cob-shopify orders complete-draft --id gid://shopify/DraftOrder/123` |
-| `get_fulfillment_orders` | Get fulfillment order IDs for an order (required before creating fulfillment) | `cob-shopify orders get-fulfillment --order_id gid://shopify/Order/123` |
-| `create_fulfillment` | Create a fulfillment (mark as shipped) with tracking info | `cob-shopify orders create-fulfillment --fulfillment_order_id gid://shopify/FulfillmentOrder/123` |
-| `update_fulfillment_tracking` | Update tracking info on an existing fulfillment | `cob-shopify orders update-fulfillment-tracking --fulfillment_id gid://shopify/Fulfillment/123 --tracking_number "1Z999AA1"` |
 
 ---
 
@@ -108,8 +123,8 @@ All analytics tools use **ShopifyQL** for data retrieval -- a single API call wi
 | `repeat_customer_rate` | Percentage of returning customers over time | `cob-shopify analytics repeat-customer-rate --start_date 2026-01-01 --end_date 2026-03-15` |
 | `refund_rate_summary` | Refund rates and totals for a date range | `cob-shopify analytics refund-rate-summary --start_date 2026-01-01 --end_date 2026-03-15` |
 | `discount_performance` | Performance of discount codes and automatic discounts | `cob-shopify analytics discount-performance --start_date 2026-01-01 --end_date 2026-03-15` |
-| `conversion_funnel` | Session-to-order conversion funnel metrics | `cob-shopify analytics conversion-funnel --start_date 2026-01-01 --end_date 2026-03-15` |
+| `conversion_funnel` | Funnel stages: sessions viewed, added to cart, reached checkout, completed checkout | `cob-shopify analytics conversion-funnel --start_date 2026-01-01 --end_date 2026-03-15` |
 | `traffic_analytics` | Session traffic grouped by day, week, or month | `cob-shopify analytics traffic-analytics --start_date 2026-01-01 --end_date 2026-03-15` |
 | `product_vendor_performance` | Revenue and orders broken down by product vendor | `cob-shopify analytics product-vendor-performance --start_date 2026-01-01 --end_date 2026-03-15` |
 | `inventory_risk_report` | Products at overstock or understock risk based on sales velocity | `cob-shopify analytics inventory-risk-report --start_date 2026-01-01 --end_date 2026-03-15` |
-| `shopifyql_query` | Execute any raw ShopifyQL query for custom analytics | `cob-shopify analytics shopifyql-query --query "FROM sales SHOW total_sales SINCE -30d"` |
+| `shopifyql_query` | Execute any raw ShopifyQL query for custom analytics. **Tier 2 — disabled by default**; enable with `COB_SHOPIFY_ENABLE=shopifyql_query` | `cob-shopify analytics shopifyql-query --query "FROM sales SHOW total_sales SINCE -30d"` |

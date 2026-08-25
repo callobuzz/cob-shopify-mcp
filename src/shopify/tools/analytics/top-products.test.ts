@@ -40,10 +40,17 @@ describe.skipIf(skipIfNoCredentials())("top_products", () => {
 
 		if (data.products.length > 0) {
 			const first = data.products[0];
-			expect(typeof first.productTitle).toBe("string");
+			// Sales Shopify cannot attribute to a product come back with a null title. That is real
+			// data, so it must stay null rather than be cast to a string that isn't one.
+			expect(first.productTitle === null || typeof first.productTitle === "string").toBe(true);
 			expect(typeof first.totalRevenue).toBe("number");
 			expect(typeof first.netSales).toBe("number");
 			expect(typeof first.orderCount).toBe("number");
+		}
+
+		// No row may carry a title that is neither text nor an explicit null.
+		for (const p of data.products) {
+			expect(p.productTitle === null || typeof p.productTitle === "string").toBe(true);
 		}
 
 		// Verify revenue descending order

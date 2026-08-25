@@ -1,6 +1,8 @@
 export { addOrderNote } from "./add-order-note.tool.js";
 export { addOrderTag } from "./add-order-tag.tool.js";
 export { createDraftOrder } from "./create-draft-order.tool.js";
+export { createFulfillment } from "./create-fulfillment.tool.js";
+export { getFulfillmentOrders } from "./get-fulfillment-orders.tool.js";
 export { getOrder } from "./get-order.tool.js";
 export { getOrderByName } from "./get-order-by-name.tool.js";
 export { getOrderFulfillmentStatus } from "./get-order-fulfillment-status.tool.js";
@@ -8,5 +10,6 @@ export { getOrderTimeline } from "./get-order-timeline.tool.js";
 export { listOrders } from "./list-orders.tool.js";
 export { markOrderPaid } from "./mark-order-paid.tool.js";
 export { searchOrders } from "./search-orders.tool.js";
+export { updateFulfillmentTracking } from "./update-fulfillment-tracking.tool.js";
 export { updateOrderNote } from "./update-order-note.tool.js";
 export { updateOrderTags } from "./update-order-tags.tool.js";

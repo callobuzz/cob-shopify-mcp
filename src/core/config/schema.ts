@@ -1,4 +1,24 @@
 import { z } from "zod";
+import { checkApiVersion, unsupportedVersionAllowed } from "./api-versions.js";
+
+/**
+ * Shopify serves an unrecognized or aged-out api_version with its OLDEST supported schema
+ * instead of returning an error, so a typo or a version that quietly ages out keeps working
+ * for months and then breaks with no config change. Reject those here — this schema is the
+ * single choke point every entry point (server and CLI) goes through.
+ *
+ * Non-fatal cases (a version newer than this build knows about, or one nearing its
+ * support-end date) pass validation and are logged as warnings at startup instead.
+ */
+const apiVersionSchema = z
+	.string()
+	.default("2026-01")
+	.superRefine((version, ctx) => {
+		const check = checkApiVersion(version);
+		if (check.fatal && !unsupportedVersionAllowed()) {
+			ctx.addIssue({ code: z.ZodIssueCode.custom, message: check.message });
+		}
+	});
 
 export const configSchema = z.object({
 	auth: z
@@ -12,7 +32,7 @@ export const configSchema = z.object({
 		.default({}),
 	shopify: z
 		.object({
-			api_version: z.string().default("2026-01"),
+			api_version: apiVersionSchema,
 			max_retries: z.number().int().min(0).default(3),
 			cache: z
 				.object({

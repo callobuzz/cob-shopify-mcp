@@ -60,11 +60,16 @@ describe.skipIf(skipIfNoCredentials())("executeShopifyQL", () => {
 		}
 	});
 
-	it("should return empty data for impossible date range", async () => {
+	it("returns zeroed aggregates, not an empty set, for a range with no data", async () => {
 		const result = await executeShopifyQL("FROM sales SHOW total_sales SINCE 1900-01-01 UNTIL 1900-01-02", context.ctx);
 
-		expect(result.data).toEqual([]);
+		// Verified live: Shopify answers an empty range with one row of zeros rather than no rows.
+		// Callers must therefore test the values, not the row count, to detect "no activity".
 		expect(Array.isArray(result.columns)).toBe(true);
+		expect(result.data.length).toBeLessThanOrEqual(1);
+		for (const row of result.data) {
+			expect(row.total_sales === 0 || row.total_sales === null).toBe(true);
+		}
 	});
 
 	it("should throw on invalid ShopifyQL query", async () => {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockLoadConfig = vi.fn().mockResolvedValue({
 	auth: { method: "token", store_domain: "", access_token: undefined },

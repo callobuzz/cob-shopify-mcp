@@ -1,8 +1,13 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { type ZodType, z } from "zod";
 import type { ToolDefinition } from "../engine/types.js";
+
+/** Minimal logger surface so this module does not depend on pino. */
+export interface YamlLoaderLogger {
+	warn: (obj: Record<string, unknown>, msg: string) => void;
+}
 
 interface YamlInputField {
 	type: string;
@@ -110,14 +115,54 @@ function parseYamlTool(content: string, filePath: string): ToolDefinition {
 	return tool;
 }
 
-export function loadYamlTools(paths: string[]): ToolDefinition[] {
+/** One configured custom_paths entry that produced tools. */
+export interface LoadedYamlPath {
+	/** Path exactly as configured. */
+	path: string;
+	/** Absolute path it resolved to — the thing to check when the count is wrong. */
+	resolvedPath: string;
+	count: number;
+}
+
+/** One configured custom_paths entry that produced nothing. */
+export interface SkippedYamlPath {
+	path: string;
+	resolvedPath: string;
+	reason: string;
+}
+
+export interface YamlLoadResult {
+	tools: ToolDefinition[];
+	loaded: LoadedYamlPath[];
+	skipped: SkippedYamlPath[];
+}
+
+/**
+ * Load YAML tools and report exactly what happened per configured path.
+ *
+ * A missing or empty `custom_paths` entry is NOT an error — a misconfigured path must not stop
+ * the server from booting — but it is never silent either. Every skipped path is returned in
+ * `skipped` and, when a logger is supplied, warned about with the resolved absolute path. A
+ * wrong path previously produced a healthy-looking server with zero custom tools and no symptom
+ * beyond their absence.
+ */
+export function loadYamlToolsDetailed(paths: string[], logger?: YamlLoaderLogger): YamlLoadResult {
 	const tools: ToolDefinition[] = [];
+	const loaded: LoadedYamlPath[] = [];
+	const skipped: SkippedYamlPath[] = [];
 
 	for (const p of paths) {
+		const resolvedPath = resolve(p);
+		const before = tools.length;
+
 		try {
 			const stat = statSync(p);
 			if (stat.isDirectory()) {
 				const files = readdirSync(p).filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"));
+				if (files.length === 0) {
+					skipped.push({ path: p, resolvedPath, reason: "directory contains no .yaml or .yml files" });
+					continue;
+				}
 				for (const file of files) {
 					const filePath = join(p, file);
 					const content = readFileSync(filePath, "utf-8");
@@ -129,11 +174,31 @@ export function loadYamlTools(paths: string[]): ToolDefinition[] {
 			}
 		} catch (err) {
 			if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
-				continue; // skip missing paths
+				skipped.push({ path: p, resolvedPath, reason: "path does not exist" });
+				continue;
 			}
 			throw err;
 		}
+
+		loaded.push({ path: p, resolvedPath, count: tools.length - before });
 	}
 
-	return tools;
+	for (const entry of skipped) {
+		logger?.warn(
+			{ path: entry.path, resolvedPath: entry.resolvedPath, reason: entry.reason },
+			`Custom tool path skipped: ${entry.resolvedPath} — ${entry.reason}. No tools were loaded from it.`,
+		);
+	}
+
+	return { tools, loaded, skipped };
+}
+
+/**
+ * Load YAML tools from the configured paths.
+ *
+ * Thin wrapper over {@link loadYamlToolsDetailed} for callers that only need the tools.
+ * Pass a logger to get a warning per skipped path.
+ */
+export function loadYamlTools(paths: string[], logger?: YamlLoaderLogger): ToolDefinition[] {
+	return loadYamlToolsDetailed(paths, logger).tools;
 }

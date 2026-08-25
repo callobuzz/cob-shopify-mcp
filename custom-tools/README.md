@@ -8,6 +8,22 @@ Add any Shopify Admin GraphQL API operation as a tool — no TypeScript, no rebu
 2. Set `COB_SHOPIFY_CUSTOM_TOOLS=./custom-tools` in your `.env` (or config)
 3. Restart the server — tool is live
 
+### If your tools don't show up
+
+A `custom_paths` entry that doesn't exist (or holds no `.yaml`/`.yml` files) does **not** stop the
+server from booting, but it is never silent. Check the startup log:
+
+```
+WARN  Custom tool path skipped: /opt/app/custom-tools — path does not exist. No tools were loaded from it.
+WARN  custom_paths is configured with 1 path(s) but zero custom tools were loaded. ...
+INFO  MCP server started successfully  {"builtInTools":62,"customTools":0,"customToolPaths":[],
+      "customToolPathsSkipped":[{"path":"/opt/app/custom-tools","reason":"path does not exist"}]}
+```
+
+Paths are logged **resolved to absolute**, so a relative path interpreted against an unexpected
+working directory — the usual cause in Docker, where the folder was never `COPY`'d into the image —
+is visible immediately.
+
 ## YAML Tool Structure
 
 ```yaml
@@ -379,7 +395,7 @@ tools:
 
 ### Tier system:
 
-- **Tier 1** — Built-in tools, enabled by default (49 tools)
+- **Tier 1** — Built-in tools, enabled by default (62 tools)
 - **Tier 2** — Built-in but disabled by default (sensitive operations, opt-in)
 - **Tier 3** — Custom YAML tools, enabled by default
 

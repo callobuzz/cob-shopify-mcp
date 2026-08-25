@@ -23,6 +23,7 @@ docs/*
 
 # Internal dev files
 CLAUDE.md
+AGENTS.md
 scripts/
 test-data/
 
@@ -38,6 +39,8 @@ desktop.ini
 .idea/
 .vscode/
 .claude/
+.codex/
+.cob-anchor/
 *.swp
 *.swo
 
