@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-08-26
+
+### Fixed
+- `prepublishOnly` builds before packing. `dist/` is git-ignored and was built by hand, so nothing
+  tied the published bundle to the tagged source — a manual `npm publish` could ship a stale `dist/`
+  that silently disagreed with the release it claimed to be.
+- Source maps are no longer published. `dist/**/*.map` was 940 kB of a 1.6 MB unpacked package;
+  excluding it cuts the tarball from 315 kB to 128 kB. Maps are still generated for local debugging.
+
 ## [0.7.0] - 2026-08-26
 
 ### Added
