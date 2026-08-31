@@ -962,6 +962,36 @@ Two things are worth knowing before you reach for them:
   never reaches Shopify. If a variable appears to be ignored, check that every field of it is
   declared.
 
+#### A broken tool fails to load, rather than running wrongly
+
+**0.9.0** turned two mistakes from silent runtime behaviour into a refusal at load time. Both used
+to produce a tool that registered, reported healthy, and did the wrong thing when called.
+
+**A `type:` the loader does not implement is refused.** It used to fall through to `string`, so
+`type: integer` quietly became a string field — `5` was rejected and `"5"` was sent to Shopify as
+text. The error names the field, including nested ones:
+
+```
+YAML tool "my_tool" at "./my-tools/thing.yaml": input "lines.items.quantity" has unknown
+type "integer". Valid types: string, number, boolean, enum, array, object
+```
+
+**`input:` and your GraphQL variables must be the same set, in both directions.** A YAML tool has
+no handler — the engine runs your document with the validated input as its variables and nothing
+else — so any difference between the two is a bug you cannot see:
+
+- a variable no `input:` declares can never be supplied, and GraphQL reads an absent optional
+  variable as "not specified";
+- an `input:` no variable uses is validated and then dropped, so the tool advertises a parameter
+  it ignores.
+
+One typo causes both. The `complete_draft_order` tool shipped with `payment_pending` in its input
+and `$paymentPending` in its mutation, so asking for a pending payment completed the draft order
+as **paid** — with no error anywhere. It is fixed in 0.9.0, and the loader now refuses that shape.
+
+A `$` inside a string literal, a `#` comment or a `"""` block is not read as a variable, so
+`query: "price:>$100"` is fine.
+
 Full guide, including the scopes reference → **[Custom Tools Guide](custom-tools/README.md)**
 
 | Feature | **cob-shopify-mcp (11⭐)** | GeLi2001 (147⭐) | pashpashpash (35⭐) | antoineschaller (10⭐) | benwmerritt |

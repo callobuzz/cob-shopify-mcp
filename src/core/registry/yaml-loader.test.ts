@@ -33,8 +33,8 @@ input:
     type: string
     required: true
 graphql: |
-  query GetMetafield($ownerId: ID!) {
-    metafield(ownerId: $ownerId) { id namespace key value }
+  query GetMetafield($owner_id: ID!, $namespace: String!, $key: String!) {
+    metafield(ownerId: $owner_id, namespace: $namespace, key: $key) { id namespace key value }
   }
 `;
 
@@ -70,7 +70,7 @@ input:
   name:
     type: string
     required: true
-graphql: "query { test }"
+graphql: "query T($name: String!) { test(name: $name) }"
 `;
 		const filePath = join(testDir, "str.yaml");
 		writeFileSync(filePath, yaml);
@@ -91,7 +91,7 @@ input:
   count:
     type: number
     required: true
-graphql: "query { test }"
+graphql: "query T($count: Int!) { test(count: $count) }"
 `;
 		const filePath = join(testDir, "num.yaml");
 		writeFileSync(filePath, yaml);
@@ -112,7 +112,7 @@ input:
   active:
     type: boolean
     required: true
-graphql: "query { test }"
+graphql: "query T($active: Boolean!) { test(active: $active) }"
 `;
 		const filePath = join(testDir, "bool.yaml");
 		writeFileSync(filePath, yaml);
@@ -136,7 +136,7 @@ input:
       - ACTIVE
       - DRAFT
     required: true
-graphql: "query { test }"
+graphql: "query T($status: Status!) { test(status: $status) }"
 `;
 		const filePath = join(testDir, "enum.yaml");
 		writeFileSync(filePath, yaml);
@@ -145,6 +145,24 @@ graphql: "query { test }"
 		const schema = z.object(tools[0].input);
 		expect(schema.safeParse({ status: "ACTIVE" }).success).toBe(true);
 		expect(schema.safeParse({ status: "INVALID" }).success).toBe(false);
+	});
+
+	it("rejects an enum declared without values", () => {
+		const yaml = `
+name: test_empty_enum
+domain: test
+description: Test
+scopes: []
+input:
+  status:
+    type: enum
+    required: true
+graphql: "query T($status: Status!) { test(status: $status) }"
+`;
+		const filePath = join(testDir, "emptyenum.yaml");
+		writeFileSync(filePath, yaml);
+
+		expect(() => loadYamlTools([filePath])).toThrow("is type enum and requires a non-empty 'enum' list");
 	});
 
 	it("applies min/max constraints to number inputs", () => {
@@ -159,7 +177,7 @@ input:
     min: 1
     max: 100
     required: true
-graphql: "query { test }"
+graphql: "query T($limit: Int!) { test(first: $limit) }"
 `;
 		const filePath = join(testDir, "minmax.yaml");
 		writeFileSync(filePath, yaml);
@@ -181,7 +199,7 @@ input:
   limit:
     type: number
     default: 10
-graphql: "query { test }"
+graphql: "query T($limit: Int) { test(first: $limit) }"
 `;
 		const filePath = join(testDir, "default.yaml");
 		writeFileSync(filePath, yaml);
@@ -430,7 +448,7 @@ input:
         quantity:
           type: number
           required: true
-graphql: "mutation { test }"
+graphql: "mutation M($line_items: [LineInput!]) { test(lines: $line_items) }"
 `;
 
 	it("accepts a list of objects", () => {
@@ -502,7 +520,7 @@ input:
     required: true
     items:
       type: string
-graphql: "mutation { test }"
+graphql: "mutation M($tags: [String!]!) { test(tags: $tags) }"
 `,
 		);
 		expect(schema.safeParse({ tags: ["a", "b"] }).success).toBe(true);
@@ -522,10 +540,10 @@ input:
   things:
     type: array
     required: true
-graphql: "query { test }"
+graphql: "query T($things: [String!]!) { test(things: $things) }"
 `,
 		);
-		expect(() => loadYamlTools([filePath])).toThrow("Array type requires an 'items' declaration");
+		expect(() => loadYamlTools([filePath])).toThrow("is type array and requires an 'items' declaration");
 	});
 
 	it("rejects an object declared without properties", () => {
@@ -541,9 +559,293 @@ input:
   thing:
     type: object
     required: true
-graphql: "query { test }"
+graphql: "query T($thing: ThingInput!) { test(thing: $thing) }"
 `,
 		);
-		expect(() => loadYamlTools([filePath])).toThrow("Object type requires a 'properties' declaration");
+		expect(() => loadYamlTools([filePath])).toThrow("is type object and requires a 'properties' declaration");
+	});
+});
+
+/**
+ * An unrecognised `type:` is refused, added in 0.9.0.
+ *
+ * Until 0.9.0 the switch in convertInputType ended in `default: z.string()`, so anything it did
+ * not implement quietly became a string. That is the mechanism behind every symptom in the block
+ * above: `type: array` was accepted by the loader and only failed when somebody called the tool,
+ * with an error that blamed the caller's argument rather than the declaration.
+ */
+describe("unrecognised input types are refused at load, not at call time", () => {
+	function write(yaml: string, file = "bad-type.yaml") {
+		const filePath = join(testDir, file);
+		writeFileSync(filePath, yaml);
+		return filePath;
+	}
+
+	it("refuses a type the loader does not implement", () => {
+		const filePath = write(`
+name: bad_type
+domain: test
+description: Test
+scopes: []
+input:
+  count:
+    type: integer
+    required: true
+graphql: "query T($count: Int!) { test(count: $count) }"
+`);
+		expect(() => loadYamlTools([filePath])).toThrow('input "count" has unknown type "integer"');
+	});
+
+	it("lists the types that are valid, so the fix does not need the source", () => {
+		const filePath = write(`
+name: bad_type_list
+domain: test
+description: Test
+scopes: []
+input:
+  count:
+    type: integer
+    required: true
+graphql: "query T($count: Int!) { test(count: $count) }"
+`);
+		expect(() => loadYamlTools([filePath])).toThrow("string, number, boolean, enum, array, object");
+	});
+
+	it("refuses a field with no type at all", () => {
+		const filePath = write(`
+name: no_type
+domain: test
+description: Test
+scopes: []
+input:
+  count:
+    description: how many
+    required: true
+graphql: "query T($count: Int!) { test(count: $count) }"
+`);
+		expect(() => loadYamlTools([filePath])).toThrow(`input "count" has no 'type'`);
+	});
+
+	it("names the tool and the file, because a load failure stops the whole server", () => {
+		const filePath = write(`
+name: named_tool
+domain: test
+description: Test
+scopes: []
+input:
+  count:
+    type: integer
+graphql: "query T($count: Int) { test(count: $count) }"
+`);
+		expect(() => loadYamlTools([filePath])).toThrow(`YAML tool "named_tool"`);
+		expect(() => loadYamlTools([filePath])).toThrow(filePath);
+	});
+
+	it("names the path to a bad type nested in an array", () => {
+		const filePath = write(`
+name: nested_array
+domain: test
+description: Test
+scopes: []
+input:
+  lines:
+    type: array
+    required: true
+    items:
+      type: tuple
+graphql: "query T($lines: [X!]!) { test(lines: $lines) }"
+`);
+		expect(() => loadYamlTools([filePath])).toThrow('input "lines.items" has unknown type "tuple"');
+	});
+
+	it("names the path to a bad type nested in an object", () => {
+		const filePath = write(`
+name: nested_object
+domain: test
+description: Test
+scopes: []
+input:
+  line:
+    type: object
+    required: true
+    properties:
+      quantity:
+        type: int
+graphql: "query T($line: X!) { test(line: $line) }"
+`);
+		expect(() => loadYamlTools([filePath])).toThrow('input "line.quantity" has unknown type "int"');
+	});
+
+	it("no longer accepts a numeric-looking value for a mistyped number field", () => {
+		// The regression this whole describe exists for: `type: integer` used to load as a string,
+		// so `{ count: 5 }` was rejected at call time and `{ count: "5" }` was accepted and sent to
+		// Shopify as a string. Neither outcome is visible from the YAML.
+		const filePath = write(`
+name: was_a_string
+domain: test
+description: Test
+scopes: []
+input:
+  count:
+    type: integer
+    required: true
+graphql: "query T($count: Int!) { test(count: $count) }"
+`);
+		expect(() => loadYamlTools([filePath])).toThrow();
+	});
+});
+
+/**
+ * A YAML tool's `input` and its GraphQL variables must be the same set, added in 0.9.0.
+ *
+ * The engine runs `shopify.query(tool.graphql, validatedInput)` and nothing else, so the declared
+ * input IS the variable set. Either half of a mismatch is silent at runtime, which is why it is
+ * worth failing the load over. The shipped `complete_draft_order` example carried exactly this
+ * defect from 0.1.0 to 0.9.0: input `payment_pending`, mutation `$paymentPending`.
+ */
+describe("input and GraphQL variables must be the same set", () => {
+	function write(yaml: string, file = "vars.yaml") {
+		const filePath = join(testDir, file);
+		writeFileSync(filePath, yaml);
+		return filePath;
+	}
+
+	it("refuses a variable that no input declares", () => {
+		const filePath = write(`
+name: undeclared_var
+domain: test
+description: Test
+scopes: []
+input:
+  id:
+    type: string
+    required: true
+graphql: "mutation M($id: ID!, $notify: Boolean) { test(id: $id, notify: $notify) }"
+`);
+		expect(() => loadYamlTools([filePath])).toThrow("$notify");
+		expect(() => loadYamlTools([filePath])).toThrow("nothing can ever supply them");
+	});
+
+	it("refuses an input that the query never uses", () => {
+		const filePath = write(`
+name: unused_input
+domain: test
+description: Test
+scopes: []
+input:
+  id:
+    type: string
+    required: true
+  notify:
+    type: boolean
+graphql: "mutation M($id: ID!) { test(id: $id) }"
+`);
+		expect(() => loadYamlTools([filePath])).toThrow("'input' declares notify");
+		expect(() => loadYamlTools([filePath])).toThrow("validated and then dropped");
+	});
+
+	it("catches the complete_draft_order defect — one typo, both halves", () => {
+		// Shipped for eight minor versions. `payment_pending: true` was validated, sent under a
+		// name the mutation did not use, and $paymentPending arrived null — so a draft order the
+		// caller wanted left pending was completed as paid, with no error anywhere.
+		const filePath = write(`
+name: complete_draft_order
+domain: orders
+description: Test
+scopes: []
+input:
+  id:
+    type: string
+    required: true
+  payment_pending:
+    type: boolean
+graphql: "mutation M($id: ID!, $paymentPending: Boolean) { draftOrderComplete(id: $id, paymentPending: $paymentPending) { id } }"
+`);
+		expect(() => loadYamlTools([filePath])).toThrow("$paymentPending");
+		expect(() => loadYamlTools([filePath])).toThrow("'input' declares payment_pending");
+	});
+
+	it("accepts a tool that takes no arguments at all", () => {
+		const filePath = write(`
+name: no_args
+domain: test
+description: Test
+scopes: []
+input: {}
+graphql: "query { shop { name } }"
+`);
+		expect(loadYamlTools([filePath])).toHaveLength(1);
+	});
+
+	it("does not read a $ inside a string literal as a variable", () => {
+		// Shopify search syntax puts a $ in a quoted query. Treating it as a variable would refuse
+		// a correct tool, which is worse than the defect being fixed.
+		const filePath = write(`
+name: string_dollar
+domain: test
+description: Test
+scopes: []
+input:
+  first:
+    type: number
+    required: true
+graphql: "query T($first: Int!) { products(first: $first, query: \\"price:>$100\\") { edges { node { id } } } }"
+`);
+		expect(loadYamlTools([filePath])).toHaveLength(1);
+	});
+
+	it("does not read a $ inside a comment as a variable", () => {
+		const filePath = write(`
+name: comment_dollar
+domain: test
+description: Test
+scopes: []
+input:
+  first:
+    type: number
+    required: true
+graphql: |
+  # $limit was renamed to $first in 2024-10
+  query T($first: Int!) {
+    products(first: $first) { edges { node { id } } }
+  }
+`);
+		expect(loadYamlTools([filePath])).toHaveLength(1);
+	});
+
+	it("does not read a $ inside a block string as a variable", () => {
+		const filePath = write(`
+name: block_dollar
+domain: test
+description: Test
+scopes: []
+input:
+  first:
+    type: number
+    required: true
+graphql: |
+  query T($first: Int!) {
+    """
+    Historic note: this used to be $limit.
+    """
+    products(first: $first) { edges { node { id } } }
+  }
+`);
+		expect(loadYamlTools([filePath])).toHaveLength(1);
+	});
+
+	it("names the tool and the file so the broken one is findable", () => {
+		const filePath = write(`
+name: findable
+domain: test
+description: Test
+scopes: []
+input:
+  a:
+    type: string
+graphql: "query T($b: String) { test(b: $b) }"
+`);
+		expect(() => loadYamlTools([filePath])).toThrow(`YAML tool "findable"`);
+		expect(() => loadYamlTools([filePath])).toThrow(filePath);
 	});
 });

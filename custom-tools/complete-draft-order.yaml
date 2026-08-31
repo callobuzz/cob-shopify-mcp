@@ -13,8 +13,8 @@ input:
     description: If true, creates order with payment pending
     required: false
 graphql: |
-  mutation CompleteDraftOrder($id: ID!, $paymentPending: Boolean) {
-    draftOrderComplete(id: $id, paymentPending: $paymentPending) {
+  mutation CompleteDraftOrder($id: ID!, $payment_pending: Boolean) {
+    draftOrderComplete(id: $id, paymentPending: $payment_pending) {
       draftOrder {
         id
         name

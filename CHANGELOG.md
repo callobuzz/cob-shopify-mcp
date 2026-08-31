@@ -6,6 +6,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-31
+
+### Changed — BREAKING
+- **A YAML tool whose declaration contradicts itself no longer loads.** Two mistakes that used
+  to produce a registered, healthy-looking tool that did the wrong thing when called are now
+  refused at load time. A server carrying one of them will refuse to start, and the message says
+  which tool, which file and which field. That is the intended trade: a boot failure you can read
+  beats a mutation that quietly did something else.
+
+  **1. An unrecognised `type:` throws instead of becoming a string.** The switch in
+  `convertInputType` ended in `default: z.string()`, so anything it did not implement silently
+  became a string field. `type: integer` loaded fine, then rejected `5` and accepted `"5"` —
+  sending Shopify a string where the schema wanted a number. This is the same line that made
+  `array` look supported before 0.8.0 implemented it. The vocabulary is exactly `string`,
+  `number`, `boolean`, `enum`, `array`, `object`; a missing `type:` is refused too, and nested
+  fields are named by path (`lines.items.quantity`).
+
+  **2. `input:` and the GraphQL variables must be the same set, in both directions.** A YAML tool
+  has no handler — the engine runs `shopify.query(tool.graphql, validatedInput)` and nothing else
+  — so the declared input IS the variable set. Either half of a mismatch is silent: a variable no
+  input declares can never be supplied, and GraphQL reads an absent optional variable as "not
+  specified"; an input no variable uses is validated and then dropped. Both halves come from one
+  typo. A `# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+ inside a string literal, a `#` comment or a `"""` block is not counted, so
+  `query: "price:>$100"` still loads.
+
+### Fixed
+- **`complete_draft_order` completed draft orders as PAID when asked to leave payment pending.**
+  The shipped tool declared `payment_pending` and its mutation used `$paymentPending`, so the
+  caller’s value was validated, sent under a name the mutation did not reference, and
+  `$paymentPending` arrived null — which Shopify reads as `false`. Present since the tool was
+  added; found by the check above on its first run over the tools this package ships. The
+  mutation now uses `$payment_pending`. The tool’s own input schema is unchanged, so callers
+  need no edit.
+
+### Notes
+- Every YAML tool in this repository and in the reference consumer — 14 of them — was loaded
+  through the new loader before release. One failed: the `complete_draft_order` defect above.
+- If your tool stops loading on this version, the message names the exact field. The two shapes
+  are a `type:` that is not in the list, and an `input:`/`$variable` set that does not match.
+
 ## [0.8.0] - 2026-08-31
 
 ### Added

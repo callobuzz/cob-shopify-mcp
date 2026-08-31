@@ -101,6 +101,40 @@ graphql: |
   }
 ```
 
+Since **0.9.0** the loader checks this for you, in both directions, and refuses the tool if the
+two sets differ. A tool has no handler — the engine runs your document with the validated input as
+its variables and nothing else — so a mismatch is invisible at runtime:
+
+- a `$variable` that no `input` declares can never be supplied, and GraphQL reads an absent
+  optional variable as "not specified";
+- an `input` that no `$variable` uses is validated and then thrown away, so the tool advertises a
+  parameter it ignores.
+
+One typo causes both, and this is not hypothetical: `complete_draft_order` shipped with
+`payment_pending` in its input and `$paymentPending` in its mutation, so asking for a pending
+payment completed the draft order as **paid**, with no error anywhere.
+
+```
+YAML tool "complete_draft_order" at "./custom-tools/complete-draft-order.yaml": the query uses
+$paymentPending, which 'input' does not declare, so nothing can ever supply them; 'input'
+declares payment_pending, which the query never uses, so the value is validated and then dropped
+```
+
+A `$` inside a string literal, a `#` comment or a `"""` block is not counted, so
+`query: "price:>$100"` is fine.
+
+### 1b. A `type:` the loader does not implement is refused
+
+The vocabulary is exactly `string`, `number`, `boolean`, `enum`, `array`, `object`. Before 0.9.0
+anything else fell through to `string`, so `type: integer` quietly became a string field: `5` was
+rejected and `"5"` was sent to Shopify as text. It now fails at load, naming the field — including
+a nested one, by path:
+
+```
+YAML tool "my_tool" at "./my-tools/thing.yaml": input "lines.items.quantity" has unknown
+type "integer". Valid types: string, number, boolean, enum, array, object
+```
+
 ### 2. Lists and nested objects
 
 `type: array` needs an `items:` declaration and `type: object` needs `properties:` — both throw
@@ -334,13 +368,21 @@ GraphQL errors: Field 'xyz' doesn't exist on type 'Product'
 
 ### Variable Mismatch
 
-If your input field names don't match the GraphQL variable names:
+Since 0.9.0 this is caught when the tool loads, and the server refuses to start rather than
+running a tool whose declaration contradicts its own query:
 
 ```
-GraphQL errors: Variable $wrong_name is not defined
+YAML tool "my_tool" at "./my-tools/thing.yaml": the query uses $wrongName, which 'input' does
+not declare, so nothing can ever supply them; 'input' declares wrong_name, which the query never
+uses, so the value is validated and then dropped
 ```
 
-**Fix:** Make sure your `input` field names exactly match the `$variable` names in your `graphql` query.
+**Fix:** make your `input` field names exactly match the `$variable` names in your `graphql`
+query. The message lists both halves, so it tells you which name to keep.
+
+Before 0.9.0 the same mistake produced either `GraphQL errors: Variable $wrong_name is not
+defined`, or — when the variable was optional — no error at all and a call that quietly left the
+argument out.
 
 ## Example: Adding a Custom Tool Step by Step
 
