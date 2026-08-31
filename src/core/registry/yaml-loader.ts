@@ -13,10 +13,15 @@ interface YamlInputField {
 	type: string;
 	description?: string;
 	required?: boolean;
+	/** For `number`, the value bounds. For `array`, the element count. */
 	min?: number;
 	max?: number;
 	default?: unknown;
 	enum?: string[];
+	/** `type: array` — the declaration every element is validated against. */
+	items?: YamlInputField;
+	/** `type: object` — the declaration for each property. */
+	properties?: Record<string, YamlInputField>;
 }
 
 interface YamlToolDef {
@@ -29,6 +34,26 @@ interface YamlToolDef {
 	response?: { mapping?: string };
 }
 
+/**
+ * Turn one YAML input declaration into a zod schema.
+ *
+ * This switch is the whole of what a YAML tool can express, and it is strictly narrower than
+ * what the engine can run: a built-in declares zod directly and may take any shape at all, so a
+ * type missing from here is a limit of the AUTHORING FORMAT, not of the tool system — and it is
+ * invisible from the YAML side.
+ *
+ * That distinction cost real time. `array` and `object` were absent until 0.8.0, so a tool
+ * needing a list could not be written as YAML at all — `fulfillmentCreate` choosing which lines
+ * go in a parcel being the motivating case. Declaring `type: array` fell through to the
+ * `z.string()` below and failed with "Expected string, received array"; omitting the field and
+ * referencing the variable in the GraphQL was worse, because `z.object()` strips undeclared keys
+ * and the argument silently never reached Shopify.
+ *
+ * The `default` branch still maps an unrecognised type to `z.string()`. That is the mechanism
+ * behind both of those symptoms, and it is deliberately left alone here: throwing would be more
+ * honest but would stop a server booting on a typo that currently half-works, which is a
+ * different decision from adding the two missing types.
+ */
 function convertInputType(field: YamlInputField): ZodType {
 	let schema: ZodType;
 
@@ -52,6 +77,31 @@ function convertInputType(field: YamlInputField): ZodType {
 			}
 			schema = z.enum(field.enum as [string, ...string[]]);
 			break;
+		case "array": {
+			if (!field.items) {
+				throw new Error("Array type requires an 'items' declaration");
+			}
+			// Elements are always required. A GraphQL list is `[X!]`, so an optional element
+			// schema would let `[null]` through to the API as a valid entry.
+			let arraySchema = z.array(convertInputType({ ...field.items, required: true }));
+			if (field.min !== undefined) arraySchema = arraySchema.min(field.min);
+			if (field.max !== undefined) arraySchema = arraySchema.max(field.max);
+			schema = arraySchema;
+			break;
+		}
+		case "object": {
+			if (!field.properties) {
+				throw new Error("Object type requires a 'properties' declaration");
+			}
+			const shape: Record<string, ZodType> = {};
+			for (const [key, prop] of Object.entries(field.properties)) {
+				shape[key] = convertInputType(prop);
+			}
+			// Unknown keys are stripped, which is the useful default for a GraphQL input object:
+			// a field the API does not declare would be rejected by it anyway.
+			schema = z.object(shape);
+			break;
+		}
 		default:
 			schema = z.string();
 	}

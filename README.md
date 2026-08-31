@@ -916,6 +916,54 @@ COB_SHOPIFY_ENABLE=some_tier2_tool         # Enable specific Tier 2 tools
 COB_SHOPIFY_READ_ONLY=true                 # Disable ALL write operations
 ```
 
+### Custom YAML Tools
+
+Any Admin GraphQL query or mutation can become a tool without writing TypeScript: drop a `.yaml`
+file in a directory and point `custom_paths` (or `COB_SHOPIFY_CUSTOM_TOOLS`) at it.
+
+Input fields declare a type, and the vocabulary is:
+
+| `type:` | Notes |
+|---|---|
+| `string` | |
+| `number` | `min` / `max` bound the value |
+| `boolean` | |
+| `enum` | requires `enum:` — the list of valid values |
+| `array` | requires `items:`; `min` / `max` bound the element **count** |
+| `object` | requires `properties:` |
+
+`array` and `object` arrived in **0.8.0**. They are what let a tool take a list — choosing which
+lines go in a fulfillment, for instance:
+
+```yaml
+input:
+  line_items:
+    type: array
+    required: false
+    min: 1                   # an empty list is refused, not read as "all of them"
+    items:
+      type: object
+      properties:
+        id:
+          type: string
+          required: true
+        quantity:
+          type: number
+          required: true
+```
+
+Two things are worth knowing before you reach for them:
+
+- **An omitted optional list is not an empty one.** GraphQL drops an argument whose variable was
+  never provided, so leaving a list out means "the API decides" while `[]` means "none". For
+  `fulfillmentCreate` those two readings differ by the whole order — omitted fulfils everything
+  remaining. Use `min: 1` when an empty list must be refused rather than interpreted.
+- **Undeclared properties are stripped, silently.** A key you do not list under `properties:`
+  never reaches Shopify. If a variable appears to be ignored, check that every field of it is
+  declared.
+
+Full guide, including the scopes reference → **[Custom Tools Guide](custom-tools/README.md)**
+
 | Feature | **cob-shopify-mcp (11⭐)** | GeLi2001 (147⭐) | pashpashpash (35⭐) | antoineschaller (10⭐) | benwmerritt |
 |---------|:---:|:---:|:---:|:---:|:---:|
 | **Tools** | **64** (62 built-in + 2 custom) | 14 | 15 | 22 | 30+ |
@@ -924,7 +972,7 @@ COB_SHOPIFY_READ_ONLY=true                 # Disable ALL write operations
 | **Auth methods** | **3** (static, client-creds, OAuth) | 2 | 1 | 1 | 2 |
 | **HTTP Transport** | **Streamable HTTP** | No | No | No | No |
 | **Encrypted Storage** | **JSON + SQLite** | No | No | No | No |
-| **Unit Tests** | **600** | ~2 | minimal | 1 | ~2 |
+| **Unit Tests** | **673** | ~2 | minimal | 1 | ~2 |
 | **Docker** | **Multi-stage** | No | No | No | No |
 | **Rate Limiter** | **Yes** | No | No | No | No |
 | **Query Cache** | **Yes** | No | No | No | No |

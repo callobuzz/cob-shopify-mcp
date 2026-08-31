@@ -394,3 +394,156 @@ graphql: "query { compat }"
 		expect(tools).toHaveLength(1);
 	});
 });
+
+/**
+ * `array` and `object`, added in 0.8.0.
+ *
+ * These exist because a YAML tool could not express a list at all: the switch in
+ * convertInputType fell through to z.string(), so `type: array` failed at call time with
+ * "Expected string, received array", and leaving the field undeclared was worse — z.object()
+ * strips unknown keys, so the argument silently never reached the API. The motivating tool is a
+ * partial fulfillment, where the list says which lines go in the parcel.
+ */
+describe("array and object input types", () => {
+	function load(yaml: string) {
+		const filePath = join(testDir, "arr.yaml");
+		writeFileSync(filePath, yaml);
+		return z.object(loadYamlTools([filePath])[0].input);
+	}
+
+	const lineItemsYaml = `
+name: create_fulfillment
+domain: orders
+description: Fulfil selected lines
+scopes: []
+input:
+  line_items:
+    type: array
+    required: false
+    min: 1
+    items:
+      type: object
+      properties:
+        id:
+          type: string
+          required: true
+        quantity:
+          type: number
+          required: true
+graphql: "mutation { test }"
+`;
+
+	it("accepts a list of objects", () => {
+		const schema = load(lineItemsYaml);
+		const result = schema.safeParse({
+			line_items: [
+				{ id: "gid://shopify/FulfillmentOrderLineItem/1", quantity: 2 },
+				{ id: "gid://shopify/FulfillmentOrderLineItem/2", quantity: 1 },
+			],
+		});
+		expect(result.success).toBe(true);
+	});
+
+	it("rejects an element missing a required property", () => {
+		const schema = load(lineItemsYaml);
+		const result = schema.safeParse({ line_items: [{ id: "gid://x/1" }] });
+		expect(result.success).toBe(false);
+		// The path names the element and the field, which is what makes a bad call fixable.
+		expect(result.error?.issues[0].path).toEqual(["line_items", 0, "quantity"]);
+	});
+
+	it("rejects a scalar where a list is declared", () => {
+		// The old behaviour in reverse: before 0.8.0 this schema WAS a string, so a list was the
+		// thing rejected.
+		const schema = load(lineItemsYaml);
+		expect(schema.safeParse({ line_items: "not-a-list" }).success).toBe(false);
+	});
+
+	it("treats min/max on an array as an element count", () => {
+		// An empty list must be rejectable. For a partial fulfillment an ABSENT list means
+		// "everything", so silently accepting [] would ship the whole order.
+		const schema = load(lineItemsYaml);
+		expect(schema.safeParse({ line_items: [] }).success).toBe(false);
+	});
+
+	it("leaves an optional array absent rather than defaulting it", () => {
+		const schema = load(lineItemsYaml);
+		const result = schema.parse({});
+		expect(result.line_items).toBeUndefined();
+		expect("line_items" in result).toBe(false);
+	});
+
+	it("strips a key the object does not declare", () => {
+		// The useful default for a GraphQL input object: a field the API does not declare would
+		// be rejected by it anyway.
+		const schema = load(lineItemsYaml);
+		const parsed = schema.parse({
+			line_items: [{ id: "gid://x/1", quantity: 1, sneaky: "drop me" }],
+		});
+		expect(parsed.line_items?.[0]).toEqual({ id: "gid://x/1", quantity: 1 });
+	});
+
+	it("requires every element, so a null cannot sit in the list", () => {
+		// A GraphQL list is [X!]. An optional element schema would let [null] through.
+		const schema = load(lineItemsYaml);
+		expect(schema.safeParse({ line_items: [null] }).success).toBe(false);
+	});
+
+	it("supports an array of scalars", () => {
+		const schema = load(
+			`
+name: tag_tool
+domain: test
+description: Test
+scopes: []
+input:
+  tags:
+    type: array
+    required: true
+    items:
+      type: string
+graphql: "mutation { test }"
+`,
+		);
+		expect(schema.safeParse({ tags: ["a", "b"] }).success).toBe(true);
+		expect(schema.safeParse({ tags: [1] }).success).toBe(false);
+	});
+
+	it("rejects an array declared without items", () => {
+		const filePath = join(testDir, "noitems.yaml");
+		writeFileSync(
+			filePath,
+			`
+name: bad_array
+domain: test
+description: Test
+scopes: []
+input:
+  things:
+    type: array
+    required: true
+graphql: "query { test }"
+`,
+		);
+		expect(() => loadYamlTools([filePath])).toThrow("Array type requires an 'items' declaration");
+	});
+
+	it("rejects an object declared without properties", () => {
+		const filePath = join(testDir, "noprops.yaml");
+		writeFileSync(
+			filePath,
+			`
+name: bad_object
+domain: test
+description: Test
+scopes: []
+input:
+  thing:
+    type: object
+    required: true
+graphql: "query { test }"
+`,
+		);
+		expect(() => loadYamlTools([filePath])).toThrow("Object type requires a 'properties' declaration");
+	});
+});

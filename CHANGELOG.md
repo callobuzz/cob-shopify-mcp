@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-31
+
+### Added
+- **YAML tools can declare `array` and `object` inputs.** `convertInputType` knew only `string`,
+  `number`, `boolean` and `enum`, and its `default` branch mapped everything else to `z.string()`
+  — so a tool needing a list could not be written as YAML at all. `type: array` takes an `items:`
+  declaration (with `min`/`max` bounding the element *count*) and `type: object` takes
+  `properties:`; both throw at load time if that declaration is missing. Array elements are always
+  required, because a GraphQL list is `[X!]` and an optional element schema would let `[null]`
+  through as a valid entry.
+
+  This was never a limit of the tool system — a built-in declares zod directly and could always
+  take any shape. It was a limit of the authoring format, and an invisible one: declaring
+  `type: array` failed at call time with "Expected string, received array", while omitting the
+  field and referencing its variable in the GraphQL was worse, because `z.object()` strips
+  undeclared keys and the argument silently never reached Shopify. The motivating case is a
+  partial fulfillment — `fulfillmentCreate` selecting which lines go in a parcel, which needs
+  `fulfillmentOrderLineItems: [{ id, quantity }]` and could not be expressed before this.
+
+### Notes
+- Backwards compatible. No existing tool changes behaviour: `array` and `object` were previously
+  unreachable words. The `default` fallthrough to `z.string()` is deliberately unchanged —
+  throwing on an unrecognised type would be more honest, but it would stop a server booting on a
+  typo that currently half-works, which is a separate decision from adding the two missing types.
+
 ## [0.7.1] - 2026-08-26
 
 ### Fixed

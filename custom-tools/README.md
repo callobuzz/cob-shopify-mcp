@@ -35,7 +35,7 @@ scopes:                          # Required Shopify API scopes (see scopes secti
   - read_products
 input:                           # Input parameters
   order_id:
-    type: string                 # string, number, boolean, enum
+    type: string                 # string, number, boolean, enum, array, object
     description: The order GID
     required: true               # true = mandatory, false/omit = optional
   limit:
@@ -53,6 +53,20 @@ input:                           # Input parameters
       - ACTIVE
       - DRAFT
       - ARCHIVED
+  line_items:
+    type: array                  # array = a list; min/max bound its LENGTH
+    description: Which lines to ship
+    required: false
+    min: 1
+    items:                       # every element is validated against this
+      type: object               # object = a nested shape
+      properties:
+        id:
+          type: string
+          required: true         # elements are always required; [null] is refused
+        quantity:
+          type: number
+          required: true
 graphql: |                       # The GraphQL query or mutation
   query MyQuery($order_id: ID!, $limit: Int) {
     order(id: $order_id) {
@@ -87,7 +101,22 @@ graphql: |
   }
 ```
 
-### 2. Response mapping path
+### 2. Lists and nested objects
+
+`type: array` needs an `items:` declaration and `type: object` needs `properties:` — both throw
+at load time if you leave them out, rather than loading a tool that cannot work.
+
+Two things are worth knowing before you reach for them:
+
+- **An omitted optional list is not an empty one.** GraphQL drops an argument whose variable was
+  never provided, so leaving a list out means "the API decides", while sending `[]` means "none".
+  For `fulfillmentCreate` those two readings differ by the whole order — omitted fulfils
+  everything remaining. Use `min: 1` when an empty list must be refused rather than interpreted.
+- **Undeclared keys are stripped, not passed through.** A property you do not list in
+  `properties:` never reaches the API, silently. If a variable seems to be ignored, check that
+  every field of it is declared.
+
+### 3. Response mapping path
 
 The Shopify client returns `{ data: { ... }, cost: { ... } }`. Your mapping must start with `data.`:
 
