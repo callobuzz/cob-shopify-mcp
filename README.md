@@ -681,6 +681,14 @@ cob-shopify tools info list_products
 | `inventory_risk_report` | Over/understock risk analysis | `read_inventory`, `read_products` |
 | `shopifyql_query` | Raw ShopifyQL passthrough — **Tier 2, disabled by default** | `read_reports` |
 
+### Attribution (1 tool)
+
+*Requires no Shopify credentials. The Crumbs ledger endpoint is set via the optional `CRUMBS_LEDGER_URL` environment variable (no default — the tool fails with a clear error when unset).*
+
+| Tool | Description | Scope |
+|------|-------------|-------|
+| `crumbs_attribution` | Issue a consent-gated Crumbs attribution receipt (signed journey record) for an agent-assisted order and return the x402 referral field for downstream paid calls | — |
+
 ## Other Editors (Cursor / Windsurf)
 
 Add to `.cursor/mcp.json` or equivalent:
