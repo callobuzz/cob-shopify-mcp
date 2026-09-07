@@ -19,6 +19,11 @@
 - **4 MCP prompts** (Health check, Sales report, Inventory risk, Support summary)
 - **Dual transport** — stdio (default) + Streamable HTTP
 - **3 auth methods** — Static token, OAuth client credentials, OAuth authorization code
+- **Both Shopify GraphQL APIs** — Admin by default, Storefront via `api: storefront` on a custom
+  tool, for the objects that exist on one schema only (`Shop.brand` — the merchant's logo and
+  brand colours — has no Admin equivalent). The Storefront token is **minted automatically** from
+  your Admin credentials, because a client-credentials app has no token page in the Shopify admin
+  to copy one from
 - **Cost tracking** — Every response includes Shopify API cost metadata
 - **Rate limiting** — Respects Shopify's cost-based throttling
 - **Query caching** — Configurable TTL per query type
@@ -47,6 +52,7 @@ This project gives you **two ways** to interact with Shopify. Same tools, same e
 | **Install via** | `npm install -g cob-shopify-mcp` | Same npm install, then `claude mcp add` |
 | **Docker** | Not applicable | Yes — HTTP transport for remote/multi-agent |
 | **Custom YAML tools** | Auto-discovered | Auto-discovered |
+| **Storefront API** | Same: `api: storefront` on a custom tool, token minted automatically | Same |
 | **Output** | Table (TTY), JSON when piped; `--json`, `--fields`, `--jq` | JSON via MCP response |
 | **Schema introspection** | `--schema` flag on any command | Built into MCP protocol |
 | **Context window** | Zero impact — no tool schemas loaded | All schemas injected — use [Advertise-and-Activate](#advertise-and-activate) for 82% reduction |
@@ -918,8 +924,10 @@ COB_SHOPIFY_READ_ONLY=true                 # Disable ALL write operations
 
 ### Custom YAML Tools
 
-Any Admin GraphQL query or mutation can become a tool without writing TypeScript: drop a `.yaml`
-file in a directory and point `custom_paths` (or `COB_SHOPIFY_CUSTOM_TOOLS`) at it.
+Any Shopify GraphQL query or mutation can become a tool without writing TypeScript: drop a `.yaml`
+file in a directory and point `custom_paths` (or `COB_SHOPIFY_CUSTOM_TOOLS`) at it. Admin is the
+default; since **0.10.0** a tool can declare `api: storefront` and reach the Storefront API
+instead — see [Talking to the Storefront API](#talking-to-the-storefront-api).
 
 Input fields declare a type, and the vocabulary is:
 
