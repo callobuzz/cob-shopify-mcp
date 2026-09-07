@@ -962,6 +962,49 @@ Two things are worth knowing before you reach for them:
   never reaches Shopify. If a variable appears to be ignored, check that every field of it is
   declared.
 
+#### Talking to the Storefront API
+
+Shopify has two GraphQL APIs, and a few things live on only one of them. `Shop.brand` — the
+merchant's uploaded logo, square logo, cover image and brand colours — is Storefront-only and has
+no Admin equivalent, so before **0.10.0** no tool in this package could reach it: the query
+loaded, the server booted, the connection reported healthy, and the call failed with
+`Field 'brand' doesn't exist on type 'Shop'`.
+
+Declare the API on the tool. `admin` is the default and what every tool written before 0.10.0 is:
+
+```yaml
+name: get_shop_brand
+domain: shop
+description: The merchant's logo and brand colours
+api: storefront
+input: {}
+graphql: |
+  query {
+    shop {
+      brand {
+        logo { image { url } }
+        squareLogo { image { url } }
+      }
+    }
+  }
+```
+
+**The token is minted for you.** An app installed with client credentials has no Storefront token
+page anywhere in the Shopify admin — that panel belongs to admin-created custom apps — so there is
+usually nothing to paste even if you want to. `storefrontAccessTokenCreate` is an *Admin*
+mutation, so this package creates the token from the credentials it already has, reusing an
+existing one where the store has it. Nothing is requested until a `api: storefront` tool actually
+runs.
+
+To supply your own instead, set `auth.storefront_access_token` or
+`SHOPIFY_STOREFRONT_ACCESS_TOKEN`.
+
+> **What a Storefront token may read comes from the app's `unauthenticated_*` scopes, which are
+> separate from its Admin ones.** An app with fifty Admin scopes and none of these mints a token
+> successfully and then reads nothing. Shop-level content generally wants
+> `unauthenticated_read_content`. Add it to the app's release and re-install the app — a
+> client-credentials app picks up new scopes only on re-authorisation.
+
 #### A broken tool fails to load, rather than running wrongly
 
 **0.9.0** turned two mistakes from silent runtime behaviour into a refusal at load time. Both used

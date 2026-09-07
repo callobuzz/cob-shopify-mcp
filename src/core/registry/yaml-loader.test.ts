@@ -574,6 +574,52 @@ graphql: "query T($thing: ThingInput!) { test(thing: $thing) }"
  * above: `type: array` was accepted by the loader and only failed when somebody called the tool,
  * with an error that blamed the caller's argument rather than the declaration.
  */
+describe("api: chooses which of Shopify's two GraphQL APIs a tool speaks", () => {
+	function write(yaml: string, file = "api-tool.yaml") {
+		const filePath = join(testDir, file);
+		writeFileSync(filePath, yaml);
+		return filePath;
+	}
+
+	it("defaults to the Admin API, so every tool written before 0.10.0 is unchanged", () => {
+		const filePath = write(validYaml, "default-api.yaml");
+		const [tool] = loadYamlTools([filePath]);
+		// Not "admin" — absent. A tool that never declared a transport must not acquire a field
+		// it did not write, or a later default change silently rewrites it.
+		expect(tool.api).toBeUndefined();
+	});
+
+	it("carries api: storefront through to the tool", () => {
+		const filePath = write(`
+name: get_shop_brand
+domain: shop
+description: The merchant's logo and brand colours
+scopes: []
+api: storefront
+input: {}
+graphql: "query { shop { brand { logo { image { url } } } } }"
+`);
+		const [tool] = loadYamlTools([filePath]);
+		expect(tool.api).toBe("storefront");
+	});
+
+	it("refuses an api it does not implement, naming the ones it does", () => {
+		// A typo'd transport is worse than a typo'd type: it reaches a REAL API that happens not
+		// to have the field, so Shopify answers "field doesn't exist" and the author goes off to
+		// fix a query that was never wrong. That is exactly how `Shop.brand` cost a day.
+		const filePath = write(`
+name: wrong_api
+domain: shop
+description: Test
+scopes: []
+api: storefont
+input: {}
+graphql: "query { shop { name } }"
+`);
+		expect(() => loadYamlTools([filePath])).toThrow('api "storefont" is not one of admin, storefront');
+	});
+});
+
 describe("unrecognised input types are refused at load, not at call time", () => {
 	function write(yaml: string, file = "bad-type.yaml") {
 		const filePath = join(testDir, file);

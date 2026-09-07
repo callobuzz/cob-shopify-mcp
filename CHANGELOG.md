@@ -6,6 +6,65 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-08
+
+### Added
+- **A YAML tool can now speak the Storefront API, and the token for it is minted automatically.**
+
+  Shopify has two GraphQL APIs and this package spoke one. Some objects exist on the other only —
+  `Shop.brand`, the merchant's uploaded logo, square logo, cover image and brand colours, has no
+  Admin equivalent at all. A YAML tool asking for it loaded fine, booted fine, reported healthy,
+  and failed at call time with `Field 'brand' doesn't exist on type 'Shop'`, because the limit was
+  the transport and not the query. There was no version of this package that could reach it.
+
+  Declare the API on the tool:
+
+  ```yaml
+  name: get_shop_brand
+  domain: shop
+  description: The merchant's logo and brand colours
+  api: storefront          # `admin` is the default, and what every existing tool is
+  input: {}
+  graphql: |
+    query { shop { brand { logo { image { url } } squareLogo { image { url } } } } }
+  ```
+
+  `api:` is validated at load time against exactly `admin` and `storefront`. A typo is refused
+  with both names, for the same reason a bad `type:` is: a mistyped transport does not fail
+  cleanly — it reaches a real API that happens not to have the field, and Shopify's answer sends
+  the author off to fix a query that was never wrong.
+
+- **The Storefront token is obtained without a human, from the Admin credentials already
+  configured.** This is the part that made the feature worth building rather than documenting.
+
+  An app installed through the Developer Dashboard with **client credentials** — the method this
+  package's own `auth.method: client-credentials` exists for — has no Storefront token page
+  anywhere in the Shopify admin. The "Storefront API integration" panel belongs to admin-created
+  custom apps only, so for exactly the audience served here, there is nothing an operator could
+  click even if they were willing to. `storefrontAccessTokenCreate` is an **Admin** mutation,
+  which makes the credentials already in hand the one route in.
+
+  `StorefrontClient` lists the store's existing tokens and reuses one before creating anything —
+  Shopify caps how many an app may hold, and two with the same title cannot be told apart
+  afterwards, so minting on every miss would quietly fill the allowance with duplicates nobody
+  can identify. Concurrent callers collapse onto a single mint for the same reason. Nothing is
+  requested until a `api: storefront` tool actually runs, so an all-Admin server never asks
+  Shopify for a token and costs nothing.
+
+  Set `auth.storefront_access_token` (or `SHOPIFY_STOREFRONT_ACCESS_TOKEN`) to supply one instead
+  — for an app not authorised for the mutation, or where policy says a human issues credentials.
+
+### Notes
+- **A minted token reads what the app's `unauthenticated_*` scopes allow, not its Admin ones.**
+  An app with fifty Admin scopes and no unauthenticated ones mints successfully and then reads
+  nothing, so a successful mint is not evidence of a usable token. Shop-level content generally
+  needs `unauthenticated_read_content`. A 401 from the Storefront API says this in as many words,
+  because the obvious reading of a 401 is "bad credential" and here it usually is not — an
+  operator sent to re-mint would find the same 401 waiting.
+- Scopes are changed on the app's release and require re-installing it on the store; a
+  client-credentials app picks up new scopes only on re-authorisation.
+
+
 ## [0.9.0] - 2026-08-31
 
 ### Changed — BREAKING

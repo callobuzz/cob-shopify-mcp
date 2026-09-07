@@ -28,6 +28,10 @@ export const configSchema = z.object({
 			access_token: z.string().optional(),
 			client_id: z.string().optional(),
 			client_secret: z.string().optional(),
+			// Declared here because zod STRIPS what it does not know. Omit this line and a
+			// caller can pass `auth.storefront_access_token`, get no error, and watch the
+			// server mint a token anyway — a config that is accepted and ignored.
+			storefront_access_token: z.string().optional(),
 		})
 		.default({}),
 	shopify: z

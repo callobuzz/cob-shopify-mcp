@@ -12,6 +12,14 @@ export interface YamlLoaderLogger {
 /** Every `type:` a YAML tool may declare. Anything else is a typo, and is refused. */
 export const YAML_INPUT_TYPES = ["string", "number", "boolean", "enum", "array", "object"] as const;
 
+/**
+ * Every `api:` a YAML tool may declare. Anything else is refused at LOAD time, for the same
+ * reason a bad `type:` is: Shopify's two schemas overlap heavily, so a typo'd transport does not
+ * fail cleanly -- it reaches a real API that happens not to have the field, and reports a query
+ * problem the author will then try to fix in the query.
+ */
+export const YAML_TOOL_APIS = ["admin", "storefront"] as const;
+
 interface YamlInputField {
 	type: string;
 	description?: string;
@@ -33,6 +41,7 @@ interface YamlToolDef {
 	description?: string;
 	scopes?: string[];
 	input?: Record<string, YamlInputField>;
+	api?: string;
 	graphql?: string;
 	response?: { mapping?: string };
 }
@@ -229,6 +238,12 @@ function parseYamlTool(content: string, filePath: string): ToolDefinition {
 
 	assertVariablesMatchInput(raw.name, filePath, raw.graphql, Object.keys(input));
 
+	if (raw.api !== undefined && !YAML_TOOL_APIS.includes(raw.api as (typeof YAML_TOOL_APIS)[number])) {
+		throw new Error(
+			`YAML tool "${raw.name}" at "${filePath}": api "${raw.api}" is not one of ${YAML_TOOL_APIS.join(", ")}.`,
+		);
+	}
+
 	const tool: ToolDefinition = {
 		name: raw.name,
 		domain: raw.domain,
@@ -238,6 +253,12 @@ function parseYamlTool(content: string, filePath: string): ToolDefinition {
 		input,
 		graphql: raw.graphql,
 	};
+
+	// Only set when the author asked for it, so a tool written before 0.10.0 stays exactly what
+	// it was rather than acquiring a field it never declared.
+	if (raw.api === "storefront") {
+		tool.api = "storefront";
+	}
 
 	if (raw.response?.mapping) {
 		const mapping = raw.response.mapping;

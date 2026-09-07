@@ -41,6 +41,46 @@ function makeCtx(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
 	};
 }
 
+describe("api: storefront reaches the Storefront client, not the Admin one", () => {
+	it("routes a storefront tool away from the Admin API entirely", async () => {
+		// `Shop.brand` exists on one schema only. Sending this to Admin does not fail as a
+		// transport problem -- Admin answers "field doesn't exist", which reads as a bad query.
+		const registry = new ToolRegistry();
+		registry.register(makeTool({ name: "brand_tool", api: "storefront" }));
+		const engine = new ToolEngine(registry);
+
+		const storefrontQuery = vi.fn().mockResolvedValue({ shop: { brand: null } });
+		const ctx = makeCtx({ storefront: { query: storefrontQuery } });
+
+		await engine.execute("brand_tool", {}, ctx);
+
+		expect(storefrontQuery).toHaveBeenCalledOnce();
+		expect(ctx.shopify.query).not.toHaveBeenCalled();
+	});
+
+	it("still sends an undeclared tool to Admin, so nothing written before this moves", async () => {
+		const registry = new ToolRegistry();
+		registry.register(makeTool({ name: "plain_tool" }));
+		const engine = new ToolEngine(registry);
+
+		const storefrontQuery = vi.fn();
+		const ctx = makeCtx({ storefront: { query: storefrontQuery } });
+
+		await engine.execute("plain_tool", {}, ctx);
+
+		expect(ctx.shopify.query).toHaveBeenCalledOnce();
+		expect(storefrontQuery).not.toHaveBeenCalled();
+	});
+
+	it("says the server has no Storefront client rather than failing inside a query", async () => {
+		const registry = new ToolRegistry();
+		registry.register(makeTool({ name: "brand_tool", api: "storefront" }));
+		const engine = new ToolEngine(registry);
+
+		await expect(engine.execute("brand_tool", {}, makeCtx())).rejects.toThrow(/no Storefront client/);
+	});
+});
+
 describe("ToolEngine", () => {
 	it("execute calls handler with validated input and context", async () => {
 		const handler = vi.fn().mockResolvedValue({ items: [1, 2, 3] });

@@ -9,6 +9,15 @@ export interface CobConfig {
 		access_token?: string;
 		client_id?: string;
 		client_secret?: string;
+		/**
+		 * A Storefront API access token, for the Storefront half of the API.
+		 *
+		 * Optional, and normally omitted: `StorefrontClient` mints one from these Admin
+		 * credentials and reuses it. Set it when the app is not authorised for
+		 * `storefrontAccessTokenCreate`, or when policy says a credential is issued by a human
+		 * rather than by a program.
+		 */
+		storefront_access_token?: string;
 	};
 	shopify: {
 		api_version: string;

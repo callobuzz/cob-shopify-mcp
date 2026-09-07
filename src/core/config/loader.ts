@@ -106,6 +106,9 @@ function envVarsToConfig(): Record<string, unknown> {
 	if (process.env.SHOPIFY_STORE_DOMAIN) auth.store_domain = process.env.SHOPIFY_STORE_DOMAIN;
 	if (process.env.SHOPIFY_CLIENT_ID) auth.client_id = process.env.SHOPIFY_CLIENT_ID;
 	if (process.env.SHOPIFY_CLIENT_SECRET) auth.client_secret = process.env.SHOPIFY_CLIENT_SECRET;
+	if (process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
+		auth.storefront_access_token = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+	}
 
 	// Auto-detect client-credentials method when client_id + client_secret are set
 	// but no access_token is provided

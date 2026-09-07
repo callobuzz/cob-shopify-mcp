@@ -6,6 +6,8 @@ export { withRetry } from "./retry.js";
 export { ShopifyClient } from "./shopify-client.js";
 export type { ShopifyQLColumn, ShopifyQLResult } from "./shopifyql-client.js";
 export { executeShopifyQL } from "./shopifyql-client.js";
+export type { StorefrontClientConfig } from "./storefront-client.js";
+export { STOREFRONT_TOKEN_TITLE, StorefrontClient } from "./storefront-client.js";
 export type { ThrottleInfo, ThrottleKind } from "./throttle.js";
 export {
 	detectThrottle,

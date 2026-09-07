@@ -34,7 +34,20 @@ export class ToolEngine {
 			if (tool.handler) {
 				data = await tool.handler(validatedInput, ctx);
 			} else if (tool.graphql) {
-				data = await ctx.shopify.query(tool.graphql, validatedInput);
+				if (tool.api === "storefront") {
+					// Named, not silently skipped. A tool that reaches the wrong API fails with
+					// "field doesn't exist", which sends the author to rewrite a query that was
+					// never the problem.
+					if (!ctx.storefront) {
+						throw new Error(
+							`Tool "${toolName}" is declared api: storefront, but this server has no Storefront client. ` +
+								`That happens when the store domain or API version is missing from the config.`,
+						);
+					}
+					data = await ctx.storefront.query(tool.graphql, validatedInput);
+				} else {
+					data = await ctx.shopify.query(tool.graphql, validatedInput);
+				}
 				if (tool.response) {
 					data = tool.response(data);
 				}

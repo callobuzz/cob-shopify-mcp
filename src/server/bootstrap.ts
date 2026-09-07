@@ -15,6 +15,7 @@ import { createStorage } from "@core/storage/factory.js";
 import { createTransport } from "@core/transport/factory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createShopifyClient } from "@shopify/client/factory.js";
+import { StorefrontClient } from "../shopify/client/storefront-client.js";
 import { getAllPrompts } from "./get-all-prompts.js";
 import { getAllResources } from "./get-all-resources.js";
 import { getAllTools } from "./get-all-tools.js";
@@ -92,9 +93,23 @@ export async function bootstrap(overrides?: DeepPartial<CobConfig>): Promise<voi
 		},
 	});
 
+	// 7b. Create the Storefront client.
+	//
+	// Constructed always and cheap: it holds no credential until something actually runs a
+	// `api: storefront` tool, and only then does it list-or-mint one. A server whose tools are
+	// all Admin never touches the Storefront API and never asks Shopify for a token.
+	const storefront = new StorefrontClient({
+		storeDomain: config.auth.store_domain,
+		apiVersion: config.shopify.api_version,
+		logger,
+		adminQuery: (graphql, variables, queryType) => shopify.query(graphql, variables, queryType),
+		accessToken: config.auth.storefront_access_token,
+	});
+
 	// 8. Build ExecutionContext
 	const ctx: ExecutionContext = {
 		shopify,
+		storefront,
 		config,
 		storage,
 		logger,
