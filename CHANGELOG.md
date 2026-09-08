@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+- Bumped the `qs` override floor to `^6.16.0`, clearing two moderate advisories
+  ([GHSA-x5fp-wj9c-mxmx](https://github.com/advisories/GHSA-x5fp-wj9c-mxmx), array-limit bypass
+  via bracket-key comma parsing, and [GHSA-w7fw-mjwx-w883](https://github.com/advisories/GHSA-w7fw-mjwx-w883),
+  denial of service via attacker-controlled `isBuffer`). `qs` reaches this package through
+  `@modelcontextprotocol/sdk` → `express` → `body-parser`, so it is on the request-parsing path of
+  the HTTP transport. The existing `^6.15.2` override already permitted the fixed release — the
+  lockfile was pinning the old resolution, which a caret alone does not dislodge.
+
 ## [0.11.0] - 2026-09-08
 
 ### Fixed
