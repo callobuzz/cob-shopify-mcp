@@ -1,6 +1,8 @@
+import { spawnSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { KNOWN_API_VERSIONS } from "./api-versions.js";
 import { _resetConfig, getConfig, loadConfig } from "./loader.js";
@@ -172,4 +174,97 @@ observability:
 		expect(Object.isFrozen(config.observability)).toBe(true);
 		expect(Object.isFrozen(config.rate_limit)).toBe(true);
 	});
+	// The auto-detected client-credentials method used to be injected into the ENV layer, which
+	// merges ABOVE the file layer. Because authorization-code needs the same client_id +
+	// client_secret + no access_token, the inference could not tell the two apart and silently
+	// clobbered an explicitly configured method - making the OAuth authorize flow unreachable.
+	it("auto-detection does not override an explicit auth.method from the config file", async () => {
+		const yaml = `
+auth:
+  method: authorization-code
+  store_domain: oauth-store.myshopify.com
+`;
+		writeFileSync(join(tmpDir, "cob-shopify-mcp.config.yaml"), yaml);
+		process.env.SHOPIFY_CLIENT_ID = "env-client-id";
+		process.env.SHOPIFY_CLIENT_SECRET = "env-client-secret";
+
+		const config = await loadConfig();
+		expect(config.auth.method).toBe("authorization-code");
+		expect(config.auth.client_id).toBe("env-client-id");
+	});
+
+	it("SHOPIFY_AUTH_METHOD sets auth.method from the environment", async () => {
+		process.env.SHOPIFY_AUTH_METHOD = "authorization-code";
+		process.env.SHOPIFY_CLIENT_ID = "env-client-id";
+		process.env.SHOPIFY_CLIENT_SECRET = "env-client-secret";
+
+		const config = await loadConfig();
+		expect(config.auth.method).toBe("authorization-code");
+	});
+
+	it("SHOPIFY_AUTH_METHOD overrides auth.method from the config file", async () => {
+		writeFileSync(join(tmpDir, "cob-shopify-mcp.config.yaml"), "auth:\n  method: token\n");
+		process.env.SHOPIFY_AUTH_METHOD = "authorization-code";
+		process.env.SHOPIFY_CLIENT_ID = "env-client-id";
+		process.env.SHOPIFY_CLIENT_SECRET = "env-client-secret";
+
+		const config = await loadConfig();
+		expect(config.auth.method).toBe("authorization-code");
+	});
+
+	it("auto-detection does not override an explicit auth.method from overrides", async () => {
+		process.env.SHOPIFY_CLIENT_ID = "env-client-id";
+		process.env.SHOPIFY_CLIENT_SECRET = "env-client-secret";
+
+		const config = await loadConfig({ auth: { method: "authorization-code" } });
+		expect(config.auth.method).toBe("authorization-code");
+	});
+
+	it("still auto-detects client-credentials when no method is configured anywhere", async () => {
+		process.env.SHOPIFY_CLIENT_ID = "env-client-id";
+		process.env.SHOPIFY_CLIENT_SECRET = "env-client-secret";
+
+		const config = await loadConfig();
+		expect(config.auth.method).toBe("client-credentials");
+	});
+
+	it("does not auto-detect client-credentials when an access_token is present", async () => {
+		process.env.SHOPIFY_CLIENT_ID = "env-client-id";
+		process.env.SHOPIFY_CLIENT_SECRET = "env-client-secret";
+		process.env.SHOPIFY_ACCESS_TOKEN = "shpat_env";
+
+		const config = await loadConfig();
+		expect(config.auth.method).toBe("token");
+	});
+
+	// Under transport: stdio, stdout IS the JSON-RPC channel. dotenv >= 17.1 prints a banner
+	// there on every load, which corrupts the first frame and leaves the MCP client unable to
+	// initialize - the reason `start` only worked with DOTENV_CONFIG_QUIET=true set by hand.
+	// Asserted in a real child process: vitest intercepts console.log in-process, so an
+	// in-process stdout spy passes even while the banner is being printed for real.
+	it("loading config writes nothing to stdout", async () => {
+		const loaderUrl = new URL("./loader.ts", import.meta.url).href;
+		const projectRoot = new URL("../../../", import.meta.url);
+		const scriptPath = join(tmpDir, "probe-stdout.mjs");
+		// chdir inside the child rather than spawning with cwd: tmpDir so that `tsx` still
+		// resolves from the project's node_modules, while loadConfig() still reads tmpDir.
+		writeFileSync(
+			scriptPath,
+			[
+				`process.chdir(${JSON.stringify(tmpDir)});`,
+				`const { loadConfig } = await import(${JSON.stringify(loaderUrl)});`,
+				"await loadConfig();",
+			].join("\n"),
+		);
+
+		const { DOTENV_CONFIG_QUIET: _ignored, ...cleanEnv } = process.env;
+		const result = spawnSync(process.execPath, ["--import", "tsx", scriptPath], {
+			cwd: fileURLToPath(projectRoot),
+			encoding: "utf-8",
+			env: cleanEnv,
+		});
+
+		expect(result.stderr).not.toContain("Cannot find");
+		expect(result.stdout).toBe("");
+	}, 30_000);
 });

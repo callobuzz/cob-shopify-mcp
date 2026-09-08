@@ -549,6 +549,7 @@ rate_limit:
 | `SHOPIFY_STORE_DOMAIN` | `auth.store_domain` |
 | `SHOPIFY_CLIENT_ID` | `auth.client_id` |
 | `SHOPIFY_CLIENT_SECRET` | `auth.client_secret` |
+| `SHOPIFY_AUTH_METHOD` | `auth.method` (`token`, `client-credentials`, `authorization-code`) |
 | `SHOPIFY_API_VERSION` | `shopify.api_version` |
 | `COB_SHOPIFY_READ_ONLY` | `tools.read_only` |
 | `COB_SHOPIFY_ADVERTISE_AND_ACTIVATE` | `tools.advertise_and_activate` |
@@ -557,6 +558,11 @@ rate_limit:
 ### Config Precedence
 
 `defaults < config file < environment variables < CLI flags`
+
+`auth.method` is inferred as `client-credentials` when `client_id` and `client_secret` are set
+and no `access_token` is — but only when no layer declared a method. The `authorization-code`
+flow needs those same credentials, so set `SHOPIFY_AUTH_METHOD=authorization-code` (or
+`auth.method` in the config file) to use it; an explicit value is never overridden.
 
 ## CLI Commands
 
@@ -591,6 +597,7 @@ cob-shopify products delete --id gid://shopify/Product/123  # prompts for confir
 cob-shopify-mcp start              # Start the MCP server
 cob-shopify-mcp start --transport http --port 8080
 cob-shopify connect --store my-store.myshopify.com
+cob-shopify connect                # --store is optional; falls back to the configured store
 cob-shopify config show
 
 # Legacy commands (deprecated, will be removed in v1.0)

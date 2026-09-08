@@ -88,6 +88,11 @@ program
 	.command("connect")
 	.description("Connect a Shopify store via OAuth")
 	.allowUnknownOption()
+	// Without this, allowUnknownOption() lets `--store x` through as an unknown option but
+	// Commander then rejects the same tokens as excess operands ("too many arguments"), so the
+	// only documented way to invoke connect could never run. Every sibling delegator below
+	// pairs the two flags for exactly this reason.
+	.allowExcessArguments()
 	.action(async () => {
 		const { runCommand } = await import("citty");
 		const mod = await import("./commands/connect.js");

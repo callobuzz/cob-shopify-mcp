@@ -6,6 +6,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-08
+
+### Fixed
+- **The OAuth authorization-code flow was unreachable, in four separate places** ([#6](https://github.com/callobuzz/cob-shopify-mcp/issues/6)).
+  Each one on its own is small; stacked, they meant no one could complete `connect`.
+
+  - `cob-shopify connect --store my-store.myshopify.com` — the only invocation the README
+    documents — always failed with `error: too many arguments for 'connect'. Expected 0
+    arguments but got 2.` The command declared `allowUnknownOption()` so Commander would pass
+    `--store` through to the citty handler, but not `allowExcessArguments()`, so Commander then
+    rejected those same two tokens as excess operands. The three sibling delegators (`config`,
+    `tools`, `stores`) pair both flags; `connect` was missed.
+
+  - `--store` was **required**, even though the store domain is already a first-class config
+    value. A fully configured install — `SHOPIFY_STORE_DOMAIN` set, or `auth.store_domain` in
+    the config file — still had to repeat itself on the command line. `--store` is now optional
+    and resolves through the normal precedence chain (flag, then env, then config file); with
+    nothing configured anywhere, the error now names all three ways to supply it.
+
+  - **An explicit `auth.method` was silently overwritten with `client-credentials`.** The
+    inference that picks `client-credentials` when `client_id` and `client_secret` are set with
+    no `access_token` ran *inside the environment layer*, which merges above the config file.
+    But `authorization-code` requires those exact same credentials, so the inference could not
+    tell the two flows apart and clobbered every explicit `method: authorization-code`.
+    `connect` then reported *"No manual connect step is needed"* and exited — the authorize
+    branch could not be reached by any configuration. The inference now runs after all layers
+    merge and only when no layer declared a method, so an explicit value always wins.
+
+  - **`start` printed to stdout, which under `transport: stdio` is the JSON-RPC channel.**
+    dotenv ≥ 17.1 logs an `injecting env (n) from ...` banner on every load; it corrupted the
+    first frame and left the MCP client unable to initialize, so the server only worked for
+    anyone who had discovered `DOTENV_CONFIG_QUIET=true` and set it by hand. It is now loaded
+    with `{ quiet: true }`, and `start --transport stdio` writes zero bytes to stdout.
+
+- Unrelated to the above, found while getting the suite green: `VERSION` still read `0.9.0` after
+  the 0.10.0 release, so `cob-shopify --version` reported the wrong version. Now synced to
+  `package.json`; the test asserting the two match was already red on `main`.
+
+### Added
+- `SHOPIFY_AUTH_METHOD` sets `auth.method` from the environment. There was previously no env var
+  for it at all, so an env-only deployment could not select `authorization-code` — the one method
+  the inference above would never choose on its own.
+
+
 ## [0.10.0] - 2026-09-08
 
 ### Added

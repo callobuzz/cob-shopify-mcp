@@ -109,12 +109,7 @@ function envVarsToConfig(): Record<string, unknown> {
 	if (process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
 		auth.storefront_access_token = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
 	}
-
-	// Auto-detect client-credentials method when client_id + client_secret are set
-	// but no access_token is provided
-	if (auth.client_id && auth.client_secret && !auth.access_token) {
-		auth.method = "client-credentials";
-	}
+	if (process.env.SHOPIFY_AUTH_METHOD) auth.method = process.env.SHOPIFY_AUTH_METHOD;
 
 	if (Object.keys(auth).length > 0) config.auth = auth;
 
@@ -160,6 +155,23 @@ function envVarsToConfig(): Record<string, unknown> {
 }
 
 /**
+ * Infer auth.method when no layer declared one.
+ *
+ * This must run AFTER every layer is merged, and only when `method` is still absent.
+ * authorization-code needs the very same client_id + client_secret + no access_token, so the
+ * inference cannot tell the two flows apart; running it inside the env layer let it silently
+ * clobber an explicit `method: authorization-code` and made the OAuth connect flow unreachable.
+ */
+function autoDetectAuthMethod(merged: Record<string, unknown>): Record<string, unknown> {
+	const auth = merged.auth as Record<string, unknown> | undefined;
+	if (!auth || auth.method) return merged;
+	if (auth.client_id && auth.client_secret && !auth.access_token) {
+		return deepMerge(merged, { auth: { method: "client-credentials" } });
+	}
+	return merged;
+}
+
+/**
  * Expand ~ at the start of storage.path to the user's home directory.
  */
 function expandTilde(configPath: string): string {
@@ -176,8 +188,10 @@ function expandTilde(configPath: string): string {
  * Stores the result as a frozen singleton accessible via getConfig().
  */
 export async function loadConfig(overrides?: DeepPartial<CobConfig>): Promise<CobConfig> {
-	// 1. Load .env file (if exists)
-	loadDotenv();
+	// 1. Load the dotenv file (if present). quiet: true because dotenv >= 17.1 prints a
+	// banner to STDOUT, and under transport: stdio that stream is the MCP JSON-RPC
+	// channel - the banner corrupts the first frame and the client never initializes.
+	loadDotenv({ quiet: true });
 
 	// 2-3. Find and parse config file
 	const fileConfig = loadConfigFile(process.cwd());
@@ -195,7 +209,10 @@ export async function loadConfig(overrides?: DeepPartial<CobConfig>): Promise<Co
 		merged = deepMerge(merged, overrides as Record<string, unknown>);
 	}
 
-	// 7-8. Validate with Zod (applies defaults) + expand tilde
+	// 7. Fall back to client-credentials only if nothing declared a method
+	merged = autoDetectAuthMethod(merged);
+
+	// 8-9. Validate with Zod (applies defaults) + expand tilde
 	const validated = configSchema.parse(merged);
 	validated.storage.path = expandTilde(validated.storage.path);
 
