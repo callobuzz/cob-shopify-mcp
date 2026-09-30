@@ -14,6 +14,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `@modelcontextprotocol/sdk` → `express` → `body-parser`, so it is on the request-parsing path of
   the HTTP transport. The existing `^6.15.2` override already permitted the fixed release — the
   lockfile was pinning the old resolution, which a caret alone does not dislodge.
+- Raised four more floors to their patched releases, clearing every open advisory:
+  - `fast-uri` → `^3.1.8` (resolves 3.1.8): two high (host confusion via an unclosed bracket in the
+    authority; authority injection via an unvalidated port in `serialize`) and one moderate
+    (inconsistent host case normalization via percent-encoded octets).
+  - `hono` → `^4.13.5` (resolves 4.13.12): three moderate (`toSSG()` path traversal, unbounded
+    dot-notation nesting in `parseBody()`, query parsing past the URL fragment).
+  - `ip-address` → `^10.7.1` (resolves 10.7.2): four moderate (NAT64 `64:ff9b:1::/48` and
+    `fe80::/10` misclassification, cross-family `isInSubnet()`, unbounded `Address6` diagnostics).
+  - `vitest` → `^4.1.11` (dev only): path traversal / arbitrary file read via the
+    `@vitest/mocker` redirect mock.
 
 ## [0.11.0] - 2026-09-08
 
