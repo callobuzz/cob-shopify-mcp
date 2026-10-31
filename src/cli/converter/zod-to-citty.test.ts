@@ -105,3 +105,26 @@ describe("zodToJsonSchema", () => {
 		expect(result).toEqual({});
 	});
 });
+
+// Zod 4 changed where these live; each case below broke silently during the upgrade.
+describe("Zod 4 introspection", () => {
+	it("keeps a description set on the optional/default wrapper", () => {
+		const result = zodToCittyArgs({
+			tag: z.string().optional().describe("Tag"),
+			limit: z.number().default(10).describe("Limit"),
+		});
+		expect(result.tag).toEqual({ type: "string", description: "Tag", required: false });
+		expect(result.limit).toEqual({ type: "string", description: "Limit", required: false, default: 10 });
+	});
+
+	it("does not report the safe-integer bounds of .int() as min/max", () => {
+		const result = zodToJsonSchema({ count: z.number().int(), page: z.number().int().min(1) });
+		expect(result.count).toEqual({ type: "number", required: true });
+		expect(result.page).toEqual({ type: "number", min: 1, required: true });
+	});
+
+	it("reads bounds and default through z.coerce.number()", () => {
+		const result = zodToJsonSchema({ limit: z.coerce.number().min(1).max(250).default(10) });
+		expect(result.limit).toEqual({ type: "number", min: 1, max: 250, default: 10, required: false });
+	});
+});

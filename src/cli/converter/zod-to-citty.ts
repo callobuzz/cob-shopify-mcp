@@ -1,4 +1,12 @@
 import type { ZodType } from "zod";
+import {
+	zodDefaultValue,
+	zodDescription,
+	zodEnumValues,
+	zodInner,
+	zodKind,
+	zodNumberBounds,
+} from "./zod-introspect.js";
 
 export interface CittyArgDef {
 	type: "string" | "boolean";
@@ -43,46 +51,39 @@ export function zodToJsonSchema(input: Record<string, ZodType>): Record<string, 
 	return result;
 }
 
-function convertToCitty(schema: ZodType): CittyArgDef {
-	// biome-ignore lint/suspicious/noExplicitAny: Zod internals require _def access
-	const def = (schema as any)._def;
-	const typeName: string = def.typeName;
+function convertToCitty(schema: ZodType, inherited?: string): CittyArgDef {
+	const kind = zodKind(schema);
+	const description = zodDescription(schema, inherited);
+	const inner = zodInner(schema);
 
-	if (typeName === "ZodOptional") {
-		const inner = convertToCitty(def.innerType);
-		return { ...inner, required: false };
+	if (kind === "optional" && inner) {
+		return { ...convertToCitty(inner, description), required: false };
 	}
 
-	if (typeName === "ZodDefault") {
-		const inner = convertToCitty(def.innerType);
-		return { ...inner, required: false, default: def.defaultValue() };
+	if (kind === "default" && inner) {
+		return { ...convertToCitty(inner, description), required: false, default: zodDefaultValue(schema) };
 	}
 
-	const description = def.description as string | undefined;
-
-	if (typeName === "ZodString") {
+	if (kind === "string") {
 		return { type: "string", ...(description && { description }), required: true };
 	}
 
-	if (typeName === "ZodNumber") {
+	if (kind === "number") {
 		const parts: string[] = [];
 		if (description) parts.push(description);
-		if (def.checks) {
-			for (const check of def.checks) {
-				if (check.kind === "min") parts.push(`min: ${check.value}`);
-				if (check.kind === "max") parts.push(`max: ${check.value}`);
-			}
-		}
+		const { min, max } = zodNumberBounds(schema);
+		if (min !== undefined) parts.push(`min: ${min}`);
+		if (max !== undefined) parts.push(`max: ${max}`);
 		const desc = parts.length > 0 ? parts.join(", ") : undefined;
 		return { type: "string", ...(desc && { description: desc }), required: true };
 	}
 
-	if (typeName === "ZodBoolean") {
+	if (kind === "boolean") {
 		return { type: "boolean", ...(description && { description }), required: true };
 	}
 
-	if (typeName === "ZodEnum") {
-		const values: string[] = def.values;
+	if (kind === "enum") {
+		const values = zodEnumValues(schema);
 		const desc = description ? `${description} (${values.join(", ")})` : `One of: ${values.join(", ")}`;
 		return { type: "string", description: desc, required: true };
 	}
@@ -92,48 +93,38 @@ function convertToCitty(schema: ZodType): CittyArgDef {
 }
 
 function convertToJsonSchema(schema: ZodType): JsonSchemaField {
-	// biome-ignore lint/suspicious/noExplicitAny: Zod internals require _def access
-	const def = (schema as any)._def;
-	const typeName: string = def.typeName;
+	const kind = zodKind(schema);
+	const inner = zodInner(schema);
 
-	if (typeName === "ZodOptional") {
-		const inner = convertToJsonSchema(def.innerType);
-		return { ...inner, required: false };
+	if (kind === "optional" && inner) {
+		return { ...convertToJsonSchema(inner), required: false };
 	}
 
-	if (typeName === "ZodDefault") {
-		const inner = convertToJsonSchema(def.innerType);
-		return { ...inner, required: false, default: def.defaultValue() };
+	if (kind === "default" && inner) {
+		return { ...convertToJsonSchema(inner), required: false, default: zodDefaultValue(schema) };
 	}
 
-	if (typeName === "ZodString") {
+	if (kind === "string") {
 		return { type: "string", required: true };
 	}
 
-	if (typeName === "ZodNumber") {
-		const field: JsonSchemaField = { type: "number", required: true };
-		if (def.checks) {
-			for (const check of def.checks) {
-				if (check.kind === "min") field.min = check.value;
-				if (check.kind === "max") field.max = check.value;
-			}
-		}
-		return field;
+	if (kind === "number") {
+		return { type: "number", ...zodNumberBounds(schema), required: true };
 	}
 
-	if (typeName === "ZodBoolean") {
+	if (kind === "boolean") {
 		return { type: "boolean", required: true };
 	}
 
-	if (typeName === "ZodEnum") {
-		return { type: "string", enum: [...def.values], required: true };
+	if (kind === "enum") {
+		return { type: "string", enum: zodEnumValues(schema), required: true };
 	}
 
-	if (typeName === "ZodArray") {
+	if (kind === "array") {
 		return { type: "array", required: true };
 	}
 
-	if (typeName === "ZodObject") {
+	if (kind === "object") {
 		return { type: "object", required: true };
 	}
 

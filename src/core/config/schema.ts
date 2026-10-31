@@ -33,7 +33,7 @@ export const configSchema = z.object({
 			// server mint a token anyway — a config that is accepted and ignored.
 			storefront_access_token: z.string().optional(),
 		})
-		.default({}),
+		.prefault({}),
 	shopify: z
 		.object({
 			api_version: apiVersionSchema,
@@ -44,9 +44,9 @@ export const configSchema = z.object({
 					search_ttl: z.number().min(0).default(10),
 					analytics_ttl: z.number().min(0).default(300),
 				})
-				.default({}),
+				.prefault({}),
 		})
-		.default({}),
+		.prefault({}),
 	tools: z
 		.object({
 			read_only: z.boolean().default(false),
@@ -55,34 +55,34 @@ export const configSchema = z.object({
 			custom_paths: z.array(z.string()).default([]),
 			advertise_and_activate: z.boolean().default(false),
 		})
-		.default({}),
+		.prefault({}),
 	transport: z
 		.object({
 			type: z.enum(["stdio", "http"]).default("stdio"),
 			port: z.number().int().min(1).max(65535).default(3000),
 			host: z.string().default("0.0.0.0"),
 		})
-		.default({}),
+		.prefault({}),
 	storage: z
 		.object({
 			backend: z.enum(["json", "sqlite"]).default("json"),
 			path: z.string().default("~/.cob-shopify-mcp/"),
 			encrypt_tokens: z.boolean().default(false),
 		})
-		.default({}),
+		.prefault({}),
 	observability: z
 		.object({
 			log_level: z.enum(["debug", "info", "warn", "error"]).default("info"),
 			audit_log: z.boolean().default(true),
 			metrics: z.boolean().default(false),
 		})
-		.default({}),
+		.prefault({}),
 	rate_limit: z
 		.object({
 			respect_shopify_cost: z.boolean().default(true),
 			max_concurrent: z.number().int().min(1).default(10),
 		})
-		.default({}),
+		.prefault({}),
 });
 
 export type InferredCobConfig = z.infer<typeof configSchema>;

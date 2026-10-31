@@ -12,6 +12,14 @@ import type { ToolDefinition } from "../../core/engine/types.js";
 import { formatCostSummary, formatError } from "../output/errors.js";
 import { formatOutput } from "../output/formatter.js";
 import { confirmMutation, isMutation } from "../safety/mutation-guard.js";
+import {
+	zodDefaultValue,
+	zodDescription,
+	zodEnumValues,
+	zodInner,
+	zodKind,
+	zodNumberBounds,
+} from "./zod-introspect.js";
 import { zodToJsonSchema } from "./zod-to-citty.js";
 
 /**
@@ -32,7 +40,7 @@ function collectOptions(cmd: Command): Record<string, unknown> {
 /**
  * Add Commander options derived from a tool's Zod input schema.
  *
- * Introspects Zod _def to detect type and constraints:
+ * Reads each Zod schema's kind and constraints (see zod-introspect.ts):
  * - z.string()  → --name <value>
  * - z.number()  → --limit <n> (with parseFloat parser)
  * - z.boolean() → --flag (boolean flag)
@@ -46,71 +54,67 @@ function addZodOptions(cmd: Command, input: Record<string, ZodType>): void {
 	}
 }
 
-function addSingleOption(cmd: Command, key: string, schema: ZodType): void {
-	// biome-ignore lint/suspicious/noExplicitAny: Zod internals require _def access
-	const def = (schema as any)._def;
-	const typeName: string = def.typeName;
+function addSingleOption(cmd: Command, key: string, schema: ZodType, inherited?: string): void {
+	const kind = zodKind(schema);
+	const description = zodDescription(schema, inherited) ?? "";
+	const inner = zodInner(schema);
 
 	// Unwrap wrappers
-	if (typeName === "ZodOptional") {
-		addSingleOption(cmd, key, def.innerType);
+	if (kind === "optional" && inner) {
+		addSingleOption(cmd, key, inner, description);
 		// Mark the last-added option as optional (no .makeOptionMandatory)
 		return;
 	}
 
-	if (typeName === "ZodDefault") {
-		addSingleOption(cmd, key, def.innerType);
+	if (kind === "default" && inner) {
+		addSingleOption(cmd, key, inner, description);
 		// Set default on the last-added option
 		const lastOpt = cmd.options[cmd.options.length - 1];
 		if (lastOpt) {
-			lastOpt.defaultValue = def.defaultValue();
+			lastOpt.defaultValue = zodDefaultValue(schema);
 		}
 		return;
 	}
 
 	const flag = key.length === 1 ? `-${key}` : `--${key}`;
-	const description: string = def.description ?? "";
 
-	if (typeName === "ZodBoolean") {
+	if (kind === "boolean") {
 		cmd.option(`${flag}`, description);
 		return;
 	}
 
-	if (typeName === "ZodNumber") {
+	if (kind === "number") {
 		const parts: string[] = [];
 		if (description) parts.push(description);
-		if (def.checks) {
-			for (const check of def.checks) {
-				if (check.kind === "min") parts.push(`min: ${check.value}`);
-				if (check.kind === "max") parts.push(`max: ${check.value}`);
-			}
-		}
+		const { min, max } = zodNumberBounds(schema);
+		if (min !== undefined) parts.push(`min: ${min}`);
+		if (max !== undefined) parts.push(`max: ${max}`);
 		const desc = parts.length > 0 ? parts.join(", ") : "";
 		cmd.option(`${flag} <n>`, desc, Number.parseFloat);
 		return;
 	}
 
-	if (typeName === "ZodEnum") {
-		const values: string[] = def.values;
+	if (kind === "enum") {
+		const values = zodEnumValues(schema);
 		const desc = description || `One of: ${values.join(", ")}`;
 		const opt = new Option(`${flag} <value>`, desc).choices(values);
 		cmd.addOption(opt);
 		return;
 	}
 
-	if (typeName === "ZodArray") {
+	if (kind === "array") {
 		const desc = description || "Comma-separated list or JSON array";
 		cmd.option(`${flag} <values>`, desc);
 		return;
 	}
 
-	if (typeName === "ZodObject") {
+	if (kind === "object") {
 		const desc = description || "JSON object";
 		cmd.option(`${flag} <json>`, desc);
 		return;
 	}
 
-	// ZodString and fallback
+	// string and fallback
 	cmd.option(`${flag} <value>`, description);
 }
 
@@ -125,24 +129,23 @@ export function coerceValue(value: unknown, schema: ZodType): unknown {
 		return value;
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: Zod internals require _def access
-	const def = (schema as any)._def;
-	const typeName: string = def.typeName;
+	const kind = zodKind(schema);
+	const inner = zodInner(schema);
 
-	if (typeName === "ZodOptional" || typeName === "ZodDefault") {
-		return coerceValue(value, def.innerType);
+	if ((kind === "optional" || kind === "default") && inner) {
+		return coerceValue(value, inner);
 	}
 
-	if (typeName === "ZodNumber") {
+	if (kind === "number") {
 		return Number(value);
 	}
 
-	if (typeName === "ZodBoolean") {
+	if (kind === "boolean") {
 		if (typeof value === "boolean") return value;
 		return value === "true";
 	}
 
-	if (typeName === "ZodArray") {
+	if (kind === "array") {
 		if (Array.isArray(value)) return value;
 		const str = String(value).trim();
 		if (str.startsWith("[")) {
@@ -158,12 +161,12 @@ export function coerceValue(value: unknown, schema: ZodType): unknown {
 			.filter(Boolean);
 	}
 
-	if (typeName === "ZodObject") {
+	if (kind === "object") {
 		if (typeof value === "object" && value !== null) return value;
 		return JSON.parse(String(value));
 	}
 
-	// ZodString, ZodEnum, and fallback — pass through
+	// string, enum, and fallback — pass through
 	return value;
 }
 

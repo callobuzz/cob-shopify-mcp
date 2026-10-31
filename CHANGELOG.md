@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- `@modelcontextprotocol/sdk` → `^1.32.2`, clearing five advisories: the OAuth client could send
+  credentials to an authorization server the MCP server chose; experimental tasks were not tied to
+  their session; HTTP transports followed cross-origin redirects with custom headers; one request
+  within the size limit could exhaust memory during validation; server bearer authentication
+  accepted tokens issued for another service.
+- `zod` → `^4.6.6` ([GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5), high):
+  an array schema without a length limit could exhaust memory on a large input. Every zod 3 release
+  is affected and none is patched, so this is a move to zod 4.
+- Override floors raised to the patched release: `proxy-addr` `^2.0.8` (critical, IP spoofing via
+  an IPv4-mapped IPv6 trust subnet), `body-parser` `^2.4.0`, `fast-uri` `^3.1.9`, `ip-address`
+  `^10.7.5`, `qs` `^6.17.1`, `@hono/node-server` `^2.1.3` (the SDK accepts 2.x; 1.x has no fix),
+  and, dev only, `source-map-js` `^1.2.2` and `@vitest/mocker` `^4.1.12`.
+- Dev only: `vite` → `^8.3.5` (launch-editor and `server.fs` advisories), `vitest` → `^4.1.12`.
+
+### Changed
+- zod 4 is now the runtime dependency. `ToolDefinition.input` in the published types is a zod 4
+  `ZodType`, so code that builds tools in TypeScript must use zod 4 schemas. YAML custom tools are
+  not affected.
+- Config sections still fill every nested default from an empty or partial config. Zod 4's
+  `.default({})` no longer does that, so the schema uses `.prefault({})`.
+
 ## [0.11.1] - 2026-10-01
 
 ### Security
