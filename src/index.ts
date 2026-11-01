@@ -1,4 +1,4 @@
-export const VERSION = "0.11.1";
+export const VERSION = "0.12.0";
 
 export type { CobConfig, DeepPartial } from "./core/config/types.js";
 export type { PromptDefinition, PromptMessage } from "./core/engine/prompt-types.js";
