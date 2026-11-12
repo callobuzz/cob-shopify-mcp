@@ -1,0 +1,64 @@
+{
+	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+	"name": "io.github.callobuzz/cob-shopify-mcp",
+	"title": "cob-shopify-mcp",
+	"description": "Run a Shopify store from any MCP client: products, orders, customers, stock and analytics.",
+	"repository": {
+		"url": "https://github.com/callobuzz/cob-shopify-mcp",
+		"source": "github"
+	},
+	"version": "0.12.1",
+	"packages": [
+		{
+			"registryType": "npm",
+			"identifier": "cob-shopify-mcp",
+			"version": "0.12.1",
+			"transport": {
+				"type": "stdio"
+			},
+			"packageArguments": [
+				{
+					"type": "positional",
+					"value": "start"
+				}
+			],
+			"environmentVariables": [
+				{
+					"name": "SHOPIFY_STORE_DOMAIN",
+					"description": "Your store's address, for example your-store.myshopify.com",
+					"isRequired": true,
+					"format": "string",
+					"isSecret": false
+				},
+				{
+					"name": "SHOPIFY_CLIENT_ID",
+					"description": "Client ID of your Shopify app (with SHOPIFY_CLIENT_SECRET)",
+					"isRequired": false,
+					"format": "string",
+					"isSecret": false
+				},
+				{
+					"name": "SHOPIFY_CLIENT_SECRET",
+					"description": "Client secret of your Shopify app (shpss_...)",
+					"isRequired": false,
+					"format": "string",
+					"isSecret": true
+				},
+				{
+					"name": "SHOPIFY_ACCESS_TOKEN",
+					"description": "Admin API access token (shpat_...); used instead of the client ID and secret",
+					"isRequired": false,
+					"format": "string",
+					"isSecret": true
+				},
+				{
+					"name": "COB_SHOPIFY_READ_ONLY",
+					"description": "true to offer only the tools that read",
+					"isRequired": false,
+					"format": "boolean",
+					"isSecret": false
+				}
+			]
+		}
+	]
+}
